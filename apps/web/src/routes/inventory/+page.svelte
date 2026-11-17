@@ -7,6 +7,7 @@
 	let locations = [];
 	let products = [];
 	let expiring = [];
+	let leftovers = [];
 	let valuationMinor = 0;
 	let err = '';
 	let loading = true;
@@ -31,18 +32,20 @@
 		loading = true;
 		err = '';
 		try {
-			const [l, loc, prods, exp, val] = await Promise.all([
+			const [l, loc, prods, exp, val, left] = await Promise.all([
 				api.get('/api/inventory/lots'),
 				api.get('/api/inventory/locations'),
 				api.get('/api/catalog/products?limit=200'),
 				api.get('/api/inventory/expiring?days=7'),
-				api.get('/api/inventory/valuation')
+				api.get('/api/inventory/valuation'),
+				api.get('/api/inventory/leftovers')
 			]);
 			lots = l;
 			locations = loc;
 			products = prods;
 			expiring = exp;
 			valuationMinor = val.valuation_minor;
+			leftovers = left;
 		} catch (e) {
 			err = e.message;
 		}
@@ -76,6 +79,15 @@
 		if (!qty || qty <= 0) return;
 		try {
 			await api.post('/api/inventory/waste', { product_id: lot.product_id, qty, unit: lot.unit });
+			await load();
+		} catch (e) {
+			err = e.message;
+		}
+	}
+
+	async function toggleCarry(lot) {
+		try {
+			await api.post(`/api/inventory/lots/${lot.id}/carry-over`, { carry_over: !lot.carry_over });
 			await load();
 		} catch (e) {
 			err = e.message;
@@ -173,6 +185,21 @@
 	{/if}
 
 	<div class="section">
+		<h3>📅 {t('leftovers')}</h3>
+		<p class="muted">{lang === 'ar' ? 'ما لا يُستخدم هذا الأسبوع يبقى متاحًا للأسبوع القادم، وتستخدمه الخطة قبل الشراء مجددًا.' : 'What you do not use this week stays available next week, and the planner uses it before buying more.'}</p>
+		{#each leftovers as lot}
+			<div class="card row" style="padding:.7rem">
+				<span>
+					<b>{lot.product_name_ar}</b> · {lot.quantity} {lot.unit}
+					<span class="chip ok">{t('useFirst')}</span>
+				</span>
+				<button class="btn secondary small" onclick={() => toggleCarry(lot)}>{t('stopCarryOver')}</button>
+			</div>
+		{/each}
+		{#if leftovers.length === 0}<p class="muted">{t('empty')}</p>{/if}
+	</div>
+
+	<div class="section">
 		<h3>{t('locations')}</h3>
 		<div style="display:flex; gap:.4rem; flex-wrap:wrap">
 			<button class="chip {filterLoc === '' ? 'ok' : ''}" style="cursor:pointer" onclick={() => (filterLoc = '')}>{lang === 'ar' ? 'الكل' : 'All'}</button>
@@ -187,7 +214,8 @@
 			<div class="row">
 				<span>
 					<b>{lot.product_name_ar}</b>
-					<span class="muted">· {lot.quantity} {lot.unit}{lot.location_name ? ' · ' + lot.location_name : ''}</span><br />
+					<span class="muted">· {lot.quantity} {lot.unit}{lot.location_name ? ' · ' + lot.location_name : ''}</span>
+					{#if lot.carry_over}<span class="chip ok">{t('carryOver')}</span>{/if}<br />
 					{#if lot.expiry_date}<span class="muted">{t('expiryDate')}: {lot.expiry_date}</span>{/if}
 					{#if lot.estimated_cost_minor}<span class="muted"> · {money(lot.estimated_cost_minor)}</span>{/if}
 				</span>

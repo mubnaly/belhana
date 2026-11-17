@@ -85,9 +85,25 @@ pub struct CreatePriceObservation {
     pub amount_minor: i64,
     pub unit: Option<String>,
     pub unit_status: Option<String>,
+    /// e.g. 30 eggs in a carton priced at 13000 minor units.
+    pub package_size: Option<f64>,
+    pub package_unit: Option<String>,
     pub observation_date: Option<String>,
     pub source_type: Option<String>,
     pub source_url: Option<String>,
+    pub notes: Option<String>,
+}
+
+/// Edits to a confirmed observation. The old amount is preserved in
+/// `previous_amount_minor` and an `edited` review event is always recorded.
+#[derive(Debug, Deserialize)]
+pub struct UpdateObservation {
+    pub amount_minor: i64,
+    pub unit: Option<String>,
+    pub package_size: Option<f64>,
+    pub package_unit: Option<String>,
+    pub observation_date: Option<String>,
+    pub merchant_id: Option<String>,
     pub notes: Option<String>,
 }
 
@@ -196,8 +212,8 @@ pub async fn create_observation(
     let id = new_id();
     sqlx::query(
         "INSERT INTO price_observations (id, product_id, product_variant, merchant_id, location_id, amount_minor, currency, unit, unit_status,
-            observation_date, submitted_at, source_type, source_url, raw_text, review_status, occurrence_index, notes)
-         VALUES (?, ?, ?, ?, ?, ?, 'EGP', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)",
+            package_size, package_unit, observation_date, submitted_at, source_type, source_url, raw_text, review_status, occurrence_index, notes)
+         VALUES (?, ?, ?, ?, ?, ?, 'EGP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)",
     )
     .bind(&id)
     .bind(&input.product_id)
@@ -207,6 +223,8 @@ pub async fn create_observation(
     .bind(input.amount_minor)
     .bind(&input.unit)
     .bind(&unit_status)
+    .bind(input.package_size)
+    .bind(&input.package_unit)
     .bind(&input.observation_date)
     .bind(now_rfc3339())
     .bind(input.source_type.clone().unwrap_or_else(|| "manual".into()))
@@ -219,6 +237,73 @@ pub async fn create_observation(
     .map_err(map_db)?;
     record_event(pool, &id, "created", actor, None, review_status, Some("manual entry")).await?;
     get_observation(pool, &id).await
+}
+
+/// Corrects an observation (including one already verified). Corrections are
+/// never silent: the previous amount is retained and an `edited` event is
+/// written to the review audit log.
+pub async fn update_observation(
+    pool: &SqlitePool,
+    actor: &str,
+    observation_id: &str,
+    input: &UpdateObservation,
+) -> Result<PriceObservation, CommonError> {
+    let cur = get_observation(pool, observation_id).await?;
+    if input.amount_minor <= 0 {
+        return Err(CommonError::Validation("amount must be positive".into()));
+    }
+    if let Some(date) = &input.observation_date {
+        chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
+            .map_err(|_| CommonError::Validation("invalid date format, expected YYYY-MM-DD".into()))?;
+    }
+    if let Some(size) = input.package_size {
+        if size <= 0.0 {
+            return Err(CommonError::Validation("package size must be positive".into()));
+        }
+    }
+    // A corrected unit on an observation awaiting unit confirmation resolves
+    // that ambiguity; a verified observation stays verified but is re-attributed.
+    let status = if cur.review_status == "needs_unit_confirmation" && input.unit.is_some() {
+        "unreviewed"
+    } else {
+        cur.review_status.as_str()
+    };
+    let now = now_rfc3339();
+    sqlx::query(
+        "UPDATE price_observations SET amount_minor = ?, previous_amount_minor = ?,
+            unit = COALESCE(?, unit), unit_status = CASE WHEN ? IS NOT NULL THEN 'confirmed' ELSE unit_status END,
+            package_size = COALESCE(?, package_size), package_unit = COALESCE(?, package_unit),
+            observation_date = COALESCE(?, observation_date), merchant_id = COALESCE(?, merchant_id),
+            notes = COALESCE(?, notes), review_status = ?, reviewed_by = ?, reviewed_at = ?
+         WHERE id = ?",
+    )
+    .bind(input.amount_minor)
+    .bind(cur.amount_minor)
+    .bind(&input.unit)
+    .bind(&input.unit)
+    .bind(input.package_size)
+    .bind(&input.package_unit)
+    .bind(&input.observation_date)
+    .bind(&input.merchant_id)
+    .bind(&input.notes)
+    .bind(status)
+    .bind(actor)
+    .bind(&now)
+    .bind(observation_id)
+    .execute(pool)
+    .await
+    .map_err(map_db)?;
+    record_event(
+        pool,
+        observation_id,
+        "edited",
+        Some(actor),
+        Some(&cur.review_status),
+        status,
+        Some("amount/unit/package/date corrected by user"),
+    )
+    .await?;
+    get_observation(pool, observation_id).await
 }
 
 /// User-supplied editable baseline estimate (separate from merchant quotes).
@@ -348,17 +433,44 @@ pub async fn best_observation_for_product(
     product_id: &str,
     policy: &str,
 ) -> Result<Option<PriceObservation>, CommonError> {
-    let order = match policy {
-        "cheapest_verified" => "amount_minor ASC, observation_date DESC",
-        _ => "observation_date DESC, submitted_at DESC",
-    };
-    let sql = format!(
-        "SELECT * FROM price_observations
+    if policy == "cheapest_verified" {
+        let product = crate::catalog::get_product(pool, product_id).await?;
+        // Compare everything in ONE reference unit. For a product with a known
+        // pack (e.g. 30 eggs, package_unit = piece) the reference is the pack's
+        // unit, so 30 eggs / 130 EGP (4.33/egg) is comparable with 15 / 65 EGP
+        // (4.33/egg). Observations whose unit cannot be resolved into that
+        // reference are skipped rather than silently mixed — an ambiguous unit
+        // must never win a cheapest-price comparison by accident.
+        let target = product
+            .package_unit
+            .as_deref()
+            .filter(|_| product.package_size.is_some())
+            .or(product.default_unit.as_deref())
+            .unwrap_or("piece");
+        let mut best: Option<(f64, PriceObservation)> = None;
+        for obs in usable_observations(pool, product_id).await? {
+            let Some(per_unit) = crate::costing::price_per_unit(&obs, target) else {
+                continue;
+            };
+            let better = match &best {
+                None => true,
+                Some((best_price, best_obs)) => {
+                    per_unit < *best_price
+                        || (per_unit == *best_price
+                            && obs.observation_date > best_obs.observation_date)
+                }
+            };
+            if better {
+                best = Some((per_unit, obs));
+            }
+        }
+        return Ok(best.map(|(_, obs)| obs));
+    }
+    let sql = "SELECT * FROM price_observations
          WHERE product_id = ? AND review_status IN ('verified','estimate')
            AND amount_minor IS NOT NULL AND unit IS NOT NULL
-         ORDER BY {order} LIMIT 1"
-    );
-    let row = sqlx::query(&sql).bind(product_id).fetch_optional(pool).await.map_err(map_db)?;
+         ORDER BY observation_date DESC, submitted_at DESC LIMIT 1";
+    let row = sqlx::query(sql).bind(product_id).fetch_optional(pool).await.map_err(map_db)?;
     Ok(row.map(PriceObservation::from))
 }
 

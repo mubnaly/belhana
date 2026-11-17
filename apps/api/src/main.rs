@@ -75,6 +75,7 @@ fn routes_router(state: Arc<AppState>) -> axum::Router {
         .merge(routes::events_routes::router())
         .merge(routes::ai_routes::router())
         .merge(routes::dashboard_routes::router())
+        .merge(routes::tips_routes::router())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state)

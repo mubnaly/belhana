@@ -70,6 +70,24 @@ Status key: ✅ implemented and tested · 🟡 implemented, partial/limited by e
   load testing and full RTL/a11y review remain open. Accessibility warnings in the SPA build are
   non-blocking (label/control association); no blocker to functionality.
 
+## Phase 13 — Guidance & purchasing extensions ✅ (2026-11-17)
+- Migration `0011_guidance_and_purchasing` adds lot carry-over, fixed-spend shopping lines and the
+  `meal_tips` table; applied to the live smoke DB and registered in `belhana_db::MIGRATIONS`.
+- Six default household rules (`ai_instruction`, 3 × `meal_staple`, `fixed_spend` 2000 piasters,
+  `leftover_carryover`) seeded idempotently on registration and startup. Tests confirm the counts and
+  rule types.
+- AI instruction sentences are injected into the system prompt only; all mutating AI tools remain
+  proposal-only and require human approval.
+- Manual/package price entry and editing: `POST /api/prices` accepts `package_size`/`package_unit`,
+  `PUT /api/prices/{id}` retains `previous_amount_minor` and audits `action='edited'`; cheapest-per-unit
+  selection compares in the product's reference unit and skips unresolvable rows.
+- Leftover carry-over defaults on, is listed at `GET /api/inventory/leftovers`, toggleable per lot, and
+  is consumed first by the planner; plan explanations now mention staple fit and leftover reuse.
+- 25 editorial meal tips across 9 categories served by `GET /api/meal-tips` (`?category=`) and
+  `/categories`, with a filterable `/more/tips` screen (Arabic default, English switch works).
+- `fixed_spend` rules add `buy_by_amount_minor` shopping lines (e.g. 20 EGP of salt); trip completion
+  records actual expense but creates no `spend` stock lot.
+
 ## Final verification pass (2026-11-17)
 - Browser E2E against `vite dev` + seeded API: login → dashboard → bottom nav → refresh stays logged in →
   plan, shopping, inventory, recipes, all nine `/more` screens, imports batch review, and Arabic/English
@@ -82,8 +100,16 @@ Status key: ✅ implemented and tested · 🟡 implemented, partial/limited by e
   last compiler warnings.
 - Tauri crate compiles with `cargo check` once `icon.ico` was generated; WebView2 runtime still needed to launch it.
 
+## Guidance-feature verification pass (2026-11-17)
+- `python scripts/smoke_guidance.py`: 30/30 checks over rules, tips, carry-over, package prices, price
+  editing, plan explanations, fixed-spend shopping and the edit audit event.
+- Browser E2E on `/more/tips`, `/more/rules`, `/more/prices`, `/inventory`, `/shopping`: no console
+  errors; Arabic default plus English page-content switch verified. AI chat endpoint responds in manual
+  mode with the instruction rules present in context.
+
 ## Test evidence
-- `cargo test --workspace`: 20 tests pass, no warnings.
+- `cargo test --workspace`: 23 tests pass, no warnings (incl. 3 package-price unit tests).
 - `cargo check --workspace`: clean.
 - `npm run build` (apps/web): succeeds, static output written to `apps/web/build`.
-- Smoke scripts in `scripts/` exercised all MVP API flows against a seeded SQLite DB.
+- Smoke scripts in `scripts/` exercised all MVP API flows against a seeded SQLite DB;
+  `scripts/smoke_guidance.py` covers the phase-13 feature set.

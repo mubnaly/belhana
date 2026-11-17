@@ -26,7 +26,9 @@
 		onLang((l) => (lang = l));
 	});
 
-	function label(key) {
+	// Pass `lang` so Svelte tracks the label as language-dependent; `t` itself
+	// reads the module-level language, which the compiler cannot see as a dependency.
+	function label(key, _lang) {
 		return t(key);
 	}
 
@@ -51,7 +53,7 @@
 <nav class="bottomnav" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
 	{#each nav as n}
 		<a href={n.href} class:active={page.url.pathname === n.href} onclick={() => (authed = isAuthed())}>
-			<span class="icon">{n.icon}</span>{label(n.key)}
+			<span class="icon">{n.icon}</span>{label(n.key, lang)}
 		</a>
 	{/each}
 </nav>

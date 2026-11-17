@@ -47,6 +47,15 @@ const RULE_TYPES: &[&str] = &[
     "member_dislike_avoid",
     "allergen_ban",
     "dish_frequency_limit",
+    // Free-text sentence injected into the AI assistant's context.
+    "ai_instruction",
+    // Staple ingredient preferred for a meal period (rice at lunch, bread at
+    // breakfast/dinner). Scored by the deterministic planner.
+    "meal_staple",
+    // Buy an amount of money's worth of a product (spices, e.g. 20 EGP salt).
+    "fixed_spend",
+    // Explicitly mark whether unused stock rolls into the following week.
+    "leftover_carryover",
 ];
 
 /// Structural validation of rule parameters, per rule type.
@@ -77,9 +86,112 @@ pub fn validate_rule(rule_type: &str, params: &serde_json::Value) -> Result<(), 
                 return Err(CommonError::Validation("legume rule needs minimum_per_week".into()));
             }
         }
+        "ai_instruction" => {
+            let sentence = params["sentence"].as_str().unwrap_or("").trim();
+            if sentence.is_empty() {
+                return Err(CommonError::Validation(
+                    "ai_instruction needs a non-empty sentence".into(),
+                ));
+            }
+        }
+        "meal_staple" => {
+            let obj = params.as_object().ok_or_else(|| CommonError::Validation("params must be an object".into()))?;
+            let period = params["period"].as_str().unwrap_or("");
+            if !["breakfast", "lunch", "dinner"].contains(&period) {
+                return Err(CommonError::Validation(
+                    "meal_staple needs period = breakfast | lunch | dinner".into(),
+                ));
+            }
+            if !obj.contains_key("product_id") {
+                return Err(CommonError::Validation("meal_staple needs product_id".into()));
+            }
+        }
+        "fixed_spend" => {
+            let obj = params.as_object().ok_or_else(|| CommonError::Validation("params must be an object".into()))?;
+            if !obj.contains_key("product_id") {
+                return Err(CommonError::Validation("fixed_spend needs product_id".into()));
+            }
+            match params["amount_minor"].as_i64() {
+                Some(amount) if amount > 0 => {}
+                _ => {
+                    return Err(CommonError::Validation(
+                        "fixed_spend needs a positive amount_minor".into(),
+                    ))
+                }
+            }
+        }
+        "leftover_carryover" => {}
         _ => {}
     }
     Ok(())
+}
+
+fn params_value(rule: &HouseholdRule) -> serde_json::Value {
+    serde_json::from_str(rule.params.as_deref().unwrap_or("{}")).unwrap_or(serde_json::Value::Null)
+}
+
+/// Reads a string parameter from a stored rule (safe on malformed JSON).
+pub fn rule_string(rule: &HouseholdRule, key: &str) -> Option<String> {
+    params_value(rule)[key].as_str().map(|s| s.to_string())
+}
+
+/// Reads an integer parameter from a stored rule (safe on malformed JSON).
+pub fn rule_i64(rule: &HouseholdRule, key: &str) -> Option<i64> {
+    params_value(rule)[key].as_i64()
+}
+
+/// Enabled free-text sentences that must be included in the AI's context.
+/// These are household instructions only — they never write data themselves.
+pub async fn ai_instruction_sentences(
+    pool: &SqlitePool,
+    household_id: &str,
+) -> Result<Vec<String>, CommonError> {
+    let rules = list_rules(pool, household_id).await?;
+    Ok(rules
+        .into_iter()
+        .filter(|r| r.enabled && r.rule_type == "ai_instruction")
+        .filter_map(|r| rule_string(&r, "sentence"))
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect())
+}
+
+/// Enabled (period, product_id) staple preferences for the planner.
+pub async fn meal_staples(
+    pool: &SqlitePool,
+    household_id: &str,
+) -> Result<Vec<(String, String)>, CommonError> {
+    let rules = list_rules(pool, household_id).await?;
+    Ok(rules
+        .into_iter()
+        .filter(|r| r.enabled && r.rule_type == "meal_staple")
+        .filter_map(|r| {
+            let period = rule_string(&r, "period")?;
+            let product_id = rule_string(&r, "product_id")?;
+            Some((period, product_id))
+        })
+        .collect())
+}
+
+/// Enabled fixed-spend rules: buy a set amount of money of a product.
+pub async fn fixed_spends(
+    pool: &SqlitePool,
+    household_id: &str,
+) -> Result<Vec<(String, i64)>, CommonError> {
+    let rules = list_rules(pool, household_id).await?;
+    Ok(rules
+        .into_iter()
+        .filter(|r| r.enabled && r.rule_type == "fixed_spend")
+        .filter_map(|r| {
+            let product_id = rule_string(&r, "product_id")?;
+            let amount = rule_i64(&r, "amount_minor")?;
+            if amount > 0 {
+                Some((product_id, amount))
+            } else {
+                None
+            }
+        })
+        .collect())
 }
 
 pub async fn list_rules(pool: &SqlitePool, household_id: &str) -> Result<Vec<HouseholdRule>, CommonError> {

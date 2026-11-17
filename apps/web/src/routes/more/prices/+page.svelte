@@ -4,19 +4,41 @@
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 
 	let obs = [];
+	let products = [];
+	let merchants = [];
 	let err = '';
 	let loading = true;
 	let lang = getLang();
 	$: lang = $langStore;
 	let busy = false;
 	let statusFilter = '';
+	let showForm = false;
+	let editing = null;
+
+	let form = {
+		product_id: '',
+		amount: '',
+		unit: 'kg',
+		package_size: '',
+		package_unit: '',
+		observation_date: new Date().toISOString().slice(0, 10),
+		merchant_id: '',
+		notes: ''
+	};
 
 	const statuses = ['unreviewed', 'needs_unit_confirmation', 'needs_date_confirmation', 'needs_product_mapping', 'verified', 'stale', 'rejected'];
 
 	async function load() {
 		loading = true;
 		try {
-			obs = await api.get(`/api/prices?limit=100${statusFilter ? `&review_status=${statusFilter}` : ''}`);
+			const [list, prods, merch] = await Promise.all([
+				api.get(`/api/prices?limit=100${statusFilter ? `&review_status=${statusFilter}` : ''}`),
+				api.get('/api/catalog/products?limit=200').catch(() => []),
+				api.get('/api/merchants').catch(() => [])
+			]);
+			obs = list;
+			products = prods;
+			merchants = merch;
 		} catch (e) {
 			err = e.message;
 		}
@@ -24,6 +46,69 @@
 	}
 
 	onMount(load);
+
+	function blankForm() {
+		return { product_id: '', amount: '', unit: 'kg', package_size: '', package_unit: '', observation_date: new Date().toISOString().slice(0, 10), merchant_id: '', notes: '' };
+	}
+
+	function openAdd() {
+		editing = null;
+		form = blankForm();
+		showForm = true;
+		err = '';
+	}
+
+	function openEdit(o) {
+		editing = o.id;
+		form = {
+			product_id: o.product_id ?? '',
+			amount: o.amount_minor != null ? String(o.amount_minor / 100) : '',
+			unit: o.unit ?? '',
+			package_size: o.package_size != null ? String(o.package_size) : '',
+			package_unit: o.package_unit ?? '',
+			observation_date: o.observation_date ?? '',
+			merchant_id: o.merchant_id ?? '',
+			notes: o.notes ?? ''
+		};
+		showForm = true;
+		err = '';
+	}
+
+	async function savePrice() {
+		if (!form.product_id) {
+			err = t('product');
+			return;
+		}
+		if (!(Number(form.amount) > 0)) {
+			err = t('amount');
+			return;
+		}
+		busy = true;
+		err = '';
+		const body = {
+			product_id: form.product_id,
+			amount_minor: Math.round(Number(form.amount) * 100),
+			unit: form.unit || null,
+			package_size: form.package_size === '' ? null : Number(form.package_size),
+			package_unit: form.package_unit || null,
+			observation_date: form.observation_date || null,
+			merchant_id: form.merchant_id || null,
+			notes: form.notes || null
+		};
+		try {
+			if (editing) {
+				await api.put(`/api/prices/${editing}`, body);
+			} else {
+				await api.post('/api/prices', { ...body, source_type: 'manual', unit_status: 'confirmed' });
+			}
+			showForm = false;
+			editing = null;
+			await load();
+		} catch (e) {
+			err = e.message;
+		}
+		busy = false;
+	}
 
 	async function review(o, action, extra = {}) {
 		busy = true;
@@ -40,17 +125,75 @@
 	function moneyf(m) {
 		return m == null ? '—' : money(m);
 	}
+
+	function productName(o) {
+		return products.find((p) => p.id === o.product_id)?.name_ar ?? o.raw_product_label ?? o.product_id ?? '—';
+	}
 </script>
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
 		<div class="brand">🏷️ {t('prices')}</div>
-		<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
+		<div style="display:flex; gap:.5rem">
+			<button class="btn small" onclick={openAdd}>+ {t('addManualPrice')}</button>
+			<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
+		</div>
 	</header>
 
 	{#if err}<div class="error-msg">{err}</div>{/if}
 
-	<div class="card" style="padding:.6rem">
+	{#if showForm}
+		<div class="card">
+			<h3>{editing ? t('editPrice') : t('addManualPrice')}</h3>
+			<label>{t('product')}</label>
+			<select bind:value={form.product_id} disabled={!!editing}>
+				<option value="">—</option>
+				{#each products as p}<option value={p.id}>{p.name_ar}</option>{/each}
+			</select>
+			<div class="field-row">
+				<div>
+					<label>{t('amount')} ({lang === 'ar' ? 'جنيه' : 'EGP'})</label>
+					<input type="number" min="0.01" step="0.01" bind:value={form.amount} placeholder="130" />
+				</div>
+				<div>
+					<label>{t('unit')}</label>
+					<input bind:value={form.unit} placeholder="kg / l / piece / carton" />
+				</div>
+			</div>
+			<div class="field-row">
+				<div>
+					<label>{t('packageSize')} ({lang === 'ar' ? 'اختياري' : 'optional'})</label>
+					<input type="number" min="0.01" step="0.01" bind:value={form.package_size} placeholder="30" />
+				</div>
+				<div>
+					<label>{t('packageUnit')}</label>
+					<input bind:value={form.package_unit} placeholder="piece" />
+				</div>
+			</div>
+			<div class="field-row">
+				<div>
+					<label>{t('observationDate')}</label>
+					<input type="date" bind:value={form.observation_date} />
+				</div>
+				<div>
+					<label>{t('merchant')}</label>
+					<select bind:value={form.merchant_id}>
+						<option value="">—</option>
+						{#each merchants as m}<option value={m.id}>{m.name}</option>{/each}
+					</select>
+				</div>
+			</div>
+			<label>{t('description')}</label>
+			<input bind:value={form.notes} />
+			<div style="display:flex; gap:.5rem; margin-top:.8rem">
+				<button class="btn" onclick={savePrice} disabled={busy}>{t('savePrice')}</button>
+				<button class="btn secondary" onclick={() => (showForm = false)}>{t('cancel')}</button>
+			</div>
+			<p class="muted" style="margin-top:.6rem">{lang === 'ar' ? 'مثال: 30 بيضة بـ130 جنيهًا → احجم العبوة 30 ووحدة العبوة piece. سيحسب التطبيق سعر البيضة للمقارنة.' : 'Example: 30 eggs for 130 EGP → package size 30, package unit piece. The app computes the per-egg price for comparison.'}</p>
+		</div>
+	{/if}
+
+	<div class="card" style="padding:.6rem; margin-top:1rem">
 		<div style="display:flex; gap:.3rem; flex-wrap:wrap">
 			<button class="chip {statusFilter === '' ? 'ok' : ''}" style="cursor:pointer" onclick={() => { statusFilter = ''; load(); }}>{lang === 'ar' ? 'الكل' : 'All'}</button>
 			{#each statuses as s}
@@ -65,16 +208,18 @@
 		<p class="muted">{t('empty')}</p>
 	{:else}
 		{#each obs as o}
-			<div class="card" style="padding:.8rem">
+			<div class="card" style="padding:.8rem; margin-bottom:.5rem">
 				<div class="row">
 					<div>
-						<b>{o.raw_product_label ?? o.product_id ?? '—'}</b>
+						<b>{productName(o)}</b>
 						<span class="muted">· {moneyf(o.amount_minor)} {o.unit ?? ''}</span><br />
+						{#if o.package_size}<span class="muted">{t('packageSize')}: {o.package_size} {o.package_unit ?? ''} · </span>{/if}
 						<span class="chip {o.review_status === 'verified' ? 'ok' : o.review_status === 'rejected' ? 'bad' : 'warn'}">{t(o.review_status)}</span>
 						{#if o.observation_date}<span class="muted">· {o.observation_date}</span>{/if}
 						{#if o.unit_status === 'unresolved'}<span class="chip bad">{lang === 'ar' ? 'وحدة غير محسومة' : 'unit unresolved'}</span>{/if}
 						{#if o.notes}<span class="muted">· {o.notes}</span>{/if}
 					</div>
+					<button class="btn secondary small" onclick={() => openEdit(o)}>✎ {t('edit')}</button>
 				</div>
 				{#if o.review_status !== 'verified' && o.review_status !== 'rejected'}
 					<div style="display:flex; gap:.4rem; margin-top:.5rem; flex-wrap:wrap">

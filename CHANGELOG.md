@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.2.0 — 2026-11-17 (guidance & purchasing extensions)
+
+### Added
+- Migration `0011_guidance_and_purchasing`: `leftover_carry_over` on stock lots, `buy_by_amount_minor`
+  on shopping items, and a seeded `meal_tips` table with 25 editorial tips across 9 categories.
+- Four new household rule types: `ai_instruction` (a free-text sentence injected into the AI system
+  prompt), `meal_staple` (preferred product per breakfast/lunch/dinner), `fixed_spend` (buy spices and
+  similar items by a fixed amount of money, e.g. 20 EGP of salt), `leftover_carryover`. Six defaults
+  are seeded idempotently for every new household (marked `notes = 'system-default'`).
+- Manual price entry with package metadata (`package_size`, `package_unit`), so 30 eggs for 130 EGP can
+  be compared per-piece with 15 eggs for 65 EGP. Cheapest-per-unit selection now compares all
+  observations in one reference unit and skips rows it cannot resolve rather than guessing.
+- Editing of confirmed price observations: `PUT /api/prices/{id}` keeps the prior value in
+  `previous_amount_minor` and writes a `price_review_events` row with `action = 'edited'`.
+- Leftover carry-over: lots default to `carry_over = 1`, appear in `GET /api/inventory/leftovers`, can be
+  toggled via `POST /api/inventory/lots/{id}/carry-over`, and are consumed first in FEFO ordering.
+- Meal tips page (`/more/tips`) with category filters, plus staple-fit and leftover-use explanation
+  text in generated plans.
+- Fixed-spend shopping lines (`unit = "spend"`, `buy_by_amount_minor`) generated from `fixed_spend`
+  rules; completing a trip records the actual expense but creates no fake stock lot for them.
+- `scripts/smoke_guidance.py` — 30 end-to-end checks over the new rules, tips, prices, leftovers,
+  planning, shopping and audit flows (Arabic expectations kept in UTF-8 `.txt` files).
+
+### Fixed during verification
+- Price INSERT placeholder count (18 values for 19 columns) in `create_observation`.
+- Cheapest-price comparison no longer mixes units; `carton` never converts to `piece` without package
+  metadata.
+- Smoke audit query uses the correct `price_review_events.observation_id` column.
+- Added three package-price unit tests in `belhana-core::costing` (`cargo test --workspace`: 23 pass).
+- Shopping quantities no longer show floating-point noise (`1.5999999999999999 kg` → `1.6 kg`).
+- Bottom-nav labels now switch language with the rest of the page.
+
+### Known issues
+- See `IMPLEMENTATION_STATUS.md`. No live AI-provider key tested; Postgres/Tauri launch/offline sync
+  remain out of scope.
+
 ## 0.1.0 — 2026-11-17 (MVP implementation)
 
 ### Added

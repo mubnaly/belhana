@@ -62,7 +62,7 @@ pub fn tool_schemas() -> Vec<Value> {
         "name": "propose_food_rule",
         "description": "اقتراح قاعدة أسرة جديدة (تحتاج موافقة المستخدم)",
         "parameters": {"type": "object", "properties": {
-            "rule_type": {"type": "string"},
+            "rule_type": {"type": "string", "enum": ["meal_repeat_limit", "dish_consecutive_limit", "min_legume_meals", "use_freezer_first", "member_dislike_avoid", "allergen_ban", "dish_frequency_limit", "ai_instruction", "meal_staple", "fixed_spend", "leftover_carryover"]},
             "priority": {"type": "string", "enum": ["hard", "soft"]},
             "params": {"type": "object"}
         }}

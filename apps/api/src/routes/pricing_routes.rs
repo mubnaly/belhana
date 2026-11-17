@@ -65,6 +65,16 @@ async fn create_observation(
     Ok((axum::http::StatusCode::CREATED, Json(json!(o))))
 }
 
+async fn update_observation(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(id): Path<String>,
+    Json(input): Json<pricing::UpdateObservation>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let o = pricing::update_observation(&state.pool, &user.user_id, &id, &input).await?;
+    Ok(Json(json!(o)))
+}
+
 async fn review_observation(
     State(state): State<SharedState>,
     user: AuthUser,
@@ -105,7 +115,7 @@ async fn best_price(
 pub fn router() -> Router<SharedState> {
     Router::new()
         .route("/api/prices", get(list_observations).post(create_observation))
-        .route("/api/prices/{id}", get(get_observation))
+        .route("/api/prices/{id}", get(get_observation).put(update_observation))
         .route("/api/prices/{id}/review", post(review_observation))
         .route("/api/prices/baseline", post(create_baseline))
         .route("/api/prices/best/{product_id}", get(best_price))

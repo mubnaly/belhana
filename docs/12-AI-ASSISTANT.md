@@ -18,8 +18,17 @@ queries) execute deterministically. **Mutating tools never write domain data**: 
 Approval endpoints exist for the API contract; the web screen shows conversation and manual guidance,
 with proposal resolution available via API.
 
+## Instruction rules
+A household `ai_instruction` rule holds a free-text sentence that is injected **only into the system
+prompt** so the assistant "thinks for it" — e.g. "use leftovers first, make rice the usual lunch, bread
+the basis of breakfast/dinner, and buy spices by a fixed amount (20 EGP of salt) rather than by the
+kilo." All six seeded defaults are loaded on each chat turn. Instruction rules are guidance, not hard
+constraints: they never grant write access and never bypass the proposal workflow.
+
 ## Hard constraints
 - AI never invents prices, inventory, nutrition facts or dates.
-- AI cannot directly modify plans, prices, purchases or household settings.
-- System prompt requires Arabic by default and explicitly labels uncertainty.
+- AI cannot directly modify plans, prices, purchases or household settings; every mutating tool still
+  creates a pending `ai_action_proposals` row for human approval.
+- System prompt requires Arabic by default, embeds the household's instruction sentences and explicitly
+  labels uncertainty.
 - All provider traffic is server-side; API keys are never sent to the browser.

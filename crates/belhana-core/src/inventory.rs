@@ -46,6 +46,8 @@ pub struct StockLot {
     pub estimated_cost_minor: Option<i64>,
     pub notes: Option<String>,
     pub status: String,
+    /// Unused stock is kept for the following week by default.
+    pub carry_over: bool,
     pub created_at: String,
     pub product_name_ar: Option<String>,
     pub location_name: Option<String>,
@@ -66,6 +68,7 @@ fn lot_from_row_with(r: sqlx::sqlite::SqliteRow, with_names: bool) -> StockLot {
         estimated_cost_minor: r.get("estimated_cost_minor"),
         notes: r.get("notes"),
         status: r.get("status"),
+        carry_over: r.get::<i64, _>("carry_over") != 0,
         created_at: r.get("created_at"),
         product_name_ar: None,
         location_name: None,
@@ -158,7 +161,8 @@ pub async fn list_lots(
     if kind.is_some() {
         sql.push_str(" AND s.kind = ?");
     }
-    sql.push_str(" AND l.status = COALESCE(?, 'active') ORDER BY l.expiry_date IS NULL, l.expiry_date, l.created_at");
+    // Carry-over lots first, then FEFO within each group.
+    sql.push_str(" AND l.status = COALESCE(?, 'active') ORDER BY l.carry_over DESC, l.expiry_date IS NULL, l.expiry_date, l.created_at");
     let mut q = sqlx::query(&sql);
     q = q.bind(household_id);
     if let Some(v) = location_id {
@@ -250,7 +254,7 @@ pub async fn consume_fefo(
 ) -> Result<Vec<(String, f64)>, CommonError> {
     let lots = sqlx::query(
         "SELECT * FROM stock_lots WHERE household_id = ? AND product_id = ? AND status = 'active' AND quantity > 0
-         ORDER BY expiry_date IS NULL, expiry_date, created_at",
+         ORDER BY carry_over DESC, expiry_date IS NULL, expiry_date, created_at",
     )
     .bind(household_id)
     .bind(product_id)
@@ -432,6 +436,45 @@ pub async fn record_waste(
     // mark matching lots consumed
     let _ = consume_fefo(pool, household_id, product_id, qty, unit, "waste", None).await;
     Ok(())
+}
+
+/// Active lots that remain available for next week's plan. Unsigned stock is
+/// never thrown away at week boundaries; the planner and shopping list treat
+/// these quantities as already owned.
+pub async fn list_leftovers(
+    pool: &SqlitePool,
+    household_id: &str,
+) -> Result<Vec<StockLot>, CommonError> {
+    let rows = sqlx::query(
+        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name
+         FROM stock_lots l JOIN products p ON p.id = l.product_id
+         LEFT JOIN storage_locations s ON s.id = l.location_id
+         WHERE l.household_id = ? AND l.status = 'active' AND l.quantity > 0 AND l.carry_over = 1
+         ORDER BY l.expiry_date IS NULL, l.expiry_date, l.created_at",
+    )
+    .bind(household_id)
+    .fetch_all(pool)
+    .await
+    .map_err(map_db)?;
+    Ok(rows.into_iter().map(|r| lot_from_row_with(r, true)).collect())
+}
+
+/// Opts a lot in or out of next-week carry-over.
+pub async fn set_carry_over(
+    pool: &SqlitePool,
+    household_id: &str,
+    lot_id: &str,
+    carry_over: bool,
+) -> Result<StockLot, CommonError> {
+    get_lot(pool, household_id, lot_id).await?;
+    sqlx::query("UPDATE stock_lots SET carry_over = ?, updated_at = ? WHERE id = ?")
+        .bind(carry_over as i64)
+        .bind(now_rfc3339())
+        .bind(lot_id)
+        .execute(pool)
+        .await
+        .map_err(map_db)?;
+    get_lot(pool, household_id, lot_id).await
 }
 
 /// Lots expiring within `days` — for reminders and dashboard alerts.

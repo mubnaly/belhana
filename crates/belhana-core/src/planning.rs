@@ -106,6 +106,8 @@ struct EngineContext {
     soft_rules: Vec<rules::HouseholdRule>,
     min_legume_per_week: Option<i64>,
     use_freezer_first: bool,
+    /// (period, product_id) pairs: rice at lunch, bread at breakfast/dinner, etc.
+    staples: Vec<(String, String)>,
     equipment: Vec<String>,
     policy: String,
 }
@@ -162,6 +164,7 @@ async fn build_ctx(pool: &SqlitePool, hh: &Household) -> Result<EngineContext, C
         }
     }
     let use_freezer_first = all_rules.iter().any(|r| r.enabled && r.rule_type == "use_freezer_first");
+    let staples = rules::meal_staples(pool, &hh.id).await?;
     let equipment: Vec<String> = hh
         .kitchen_equipment
         .as_ref()
@@ -178,6 +181,7 @@ async fn build_ctx(pool: &SqlitePool, hh: &Household) -> Result<EngineContext, C
         soft_rules: soft,
         min_legume_per_week: min_legume,
         use_freezer_first,
+        staples,
         equipment,
         policy: hh.price_policy.clone(),
     })
@@ -356,6 +360,7 @@ pub async fn generate_plan_in_memory(
                 None => pick_best(
                     cands,
                     &ctx,
+                    period,
                     &date_s,
                     &mut used_count,
                     &previous_dates,
@@ -439,6 +444,25 @@ pub async fn generate_plan_in_memory(
             if unknown {
                 explanation.push_str("تنبيه: مكونات مفقودة بدون سعر معروف؛ ");
             }
+            if ctx.staples.iter().any(|(p, pid)| {
+                p == period
+                    && cand
+                        .ingredients
+                        .iter()
+                        .any(|i| i.product_id.as_deref() == Some(pid.as_str()))
+            }) {
+                explanation.push_str("يناسب الغذاء الرئيسي المفضل لهذه الوجبة؛ ");
+            }
+            if !inv_used.is_empty() {
+                explanation.push_str(&format!(
+                    "يستخدم بقايا متوفرة ({}) تُحتسب من المخزون ولا تُشترى مجددًا؛ ",
+                    inv_used
+                        .iter()
+                        .map(|u| format!("{} {} {}", u.name_ar, u.quantity, u.unit))
+                        .collect::<Vec<_>>()
+                        .join("، ")
+                ));
+            }
             slots.push(PlannedMealOut {
                 id: String::new(),
                 date: date_s.clone(),
@@ -488,6 +512,7 @@ pub async fn generate_plan_in_memory(
 fn pick_best(
     cands: &[Candidate],
     ctx: &EngineContext,
+    period: &str,
     date_s: &str,
     used_count: &std::collections::HashMap<String, i64>,
     previous_dates: &std::collections::HashMap<String, Vec<String>>,
@@ -542,6 +567,16 @@ fn pick_best(
         // freezer-first rule
         if ctx.use_freezer_first && uses_freezer_stock(c, stock_lots) {
             score += 2.0;
+        }
+        // staple preference for this meal period (rice at lunch, bread at
+        // breakfast/dinner). Soft: it nudges but never filters candidates.
+        if ctx.staples.iter().any(|(p, pid)| {
+            p == period
+                && c.ingredients
+                    .iter()
+                    .any(|i| i.product_id.as_deref() == Some(pid.as_str()))
+        }) {
+            score += 8.0;
         }
         // legume weekly target
         if legume_needed && c.legume {

@@ -40,6 +40,11 @@ pub struct MoveRequest {
 }
 
 #[derive(Deserialize)]
+pub struct CarryOverRequest {
+    pub carry_over: bool,
+}
+
+#[derive(Deserialize)]
 pub struct WasteRequest {
     pub product_id: String,
     pub qty: f64,
@@ -204,6 +209,21 @@ async fn expiring(
     Ok(Json(json!(list)))
 }
 
+async fn leftovers(State(state): State<SharedState>, user: AuthUser) -> ApiResult<Json<serde_json::Value>> {
+    let list = inventory::list_leftovers(&state.pool, &user.household_id).await?;
+    Ok(Json(json!(list)))
+}
+
+async fn set_carry_over(
+    State(state): State<SharedState>,
+    user: AuthUser,
+    Path(id): Path<String>,
+    Json(req): Json<CarryOverRequest>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let lot = inventory::set_carry_over(&state.pool, &user.household_id, &id, req.carry_over).await?;
+    Ok(Json(json!(lot)))
+}
+
 async fn valuation(State(state): State<SharedState>, user: AuthUser) -> ApiResult<Json<serde_json::Value>> {
     let v = inventory::valuation(&state.pool, &user.household_id).await?;
     Ok(Json(json!({"valuation_minor": v})))
@@ -227,8 +247,10 @@ pub fn router() -> Router<SharedState> {
         .route("/api/inventory/lots/{id}", get(get_lot).put(update_lot).delete(delete_lot))
         .route("/api/inventory/lots/{id}/adjust", post(adjust_lot))
         .route("/api/inventory/lots/{id}/move", post(move_lot))
+        .route("/api/inventory/lots/{id}/carry-over", post(set_carry_over))
         .route("/api/inventory/consume", post(consume))
         .route("/api/inventory/waste", post(waste))
+        .route("/api/inventory/leftovers", get(leftovers))
         .route("/api/inventory/expiring", get(expiring))
         .route("/api/inventory/valuation", get(valuation))
         .route("/api/inventory/stock/{product_id}", get(product_stock))

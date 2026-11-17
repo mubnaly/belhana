@@ -571,3 +571,101 @@ pub const OLAD_ZAIN_POST: &str = r#"محلات أولاد زين للخضروا�
 رقاق النحراوي
 سمبوسة النحراوي 40
 "#;
+
+// -------------------------------------------------------------------------
+// Meal tips & tricks — original editorial guidance, no prices or nutrition
+// claims. Displayed as practical help next to recipes and the weekly plan.
+// -------------------------------------------------------------------------
+
+pub struct MealTipDef {
+    pub title_ar: &'static str,
+    pub title_en: &'static str,
+    pub category: &'static str,
+    pub body_ar: &'static str,
+    pub body_en: &'static str,
+}
+
+macro_rules! tip {
+    ($ar:expr, $en:expr, $cat:expr, $body_ar:expr, $body_en:expr) => {
+        MealTipDef { title_ar: $ar, title_en: $en, category: $cat, body_ar: $body_ar, body_en: $body_en }
+    };
+}
+
+pub const MEAL_TIPS: &[MealTipDef] = &[
+    tip!("ابدأ بالبقايا قبل الطبخ", "Start with leftovers before cooking", "leftovers",
+        "قبل ما تخطط وجبة جديدة، افتح المخزن واستخدم البقايا أولًا. رتب العبوات حسب تاريخ الانتهاء، واجعل القديم في مقدمة الثلاجة.",
+        "Before planning a new meal, check the pantry and use leftovers first. Arrange containers by expiry date and keep the oldest at the front of the fridge."),
+    tip!("البقايا تنتقل للأسبوع التالي", "Leftovers roll into next week", "leftovers",
+        "أي كمية غير مستخدمة تظل في المخزن ولا تختفي نهاية الأسبوع. الخطة والقائمة يحسبانها كمخزون متاح، فلا تشتريها مرتين.",
+        "Anything you do not use stays in stock at week end. The planner and shopping list count it as already owned, so you do not buy it twice."),
+    tip!("قسّم الطبخة الكبيرة فورًا", "Portion big batches immediately", "batch",
+        "بعد الطبخ قسّم الكمية إلى علب حسب عدد الحصص، واتركها تبرد قبل التخزين. وجبة جاهزة في الفريزر توفر وقت وقرارات الأسبوع التالي.",
+        "After cooking, split the batch into meal-size containers and let them cool before storing. A frozen ready meal saves time and decisions next week."),
+    tip!("اكتب تاريخ على كل عبوة", "Label every container", "batch",
+        "ورقة صغيرة عليها اسم الطبخة والتاريخ كافية. بدون تاريخ ستضطر للتخمين، وال تخمين يسبب هدرًا.",
+        "A small note with the dish name and date is enough. Without a date you will have to guess, and guessing causes waste."),
+    tip!("الأرز: انقعه وصفّه جيدًا", "Rice: soak and drain well", "rice",
+        "انقع الأرز 20-30 دقيقة ثم صفّه قبل الطبخ. الكمية المعتادة كوب أرز لكل شخص تقريبًا، ويمكن زيادتها لمن يحتاج حصة أكبر.",
+        "Soak rice for 20-30 minutes and drain before cooking. Roughly one cup of dry rice per person is a common starting point; adjust for your household."),
+    tip!("الأرز بالخضار يغني عن طبقين", "Rice with vegetables replaces two dishes", "rice",
+        "أضف جزر وبصل و بازلاء مبشورة إلى الأرز أثناء الطبخ لتحصل على وجبة متكاملة في قدر واحد وغسيل أقل.",
+        "Add grated carrot, onion and peas while the rice cooks for a one-pot meal and less washing up."),
+    tip!("لا تغسل الأرز بعد الطبخ", "Do not rinse cooked rice", "rice",
+        "غسل الأرز بعد نضجه يذهب بالنكهة والقوام. إن زادت الرطوبة اترك القدر مفتوحًا على نار هادئة دقائق قليلة.",
+        "Rinsing cooked rice washes away flavour and texture. If it is too moist, leave the pot uncovered on low heat for a few minutes."),
+    tip!("الخبز: أعد تسخينه بدل شراء جديد", "Bread: refresh it instead of buying more", "bread",
+        "الخبز البلدي القديم يعود طريًا بتسخينه في فرن ساخن دقائق، أو في مقلاة مغطاة. استخدمه في الفطور والعشاء قبل شراء رغيف جديد.",
+        "Stale baladi bread softens in a hot oven for a few minutes or in a covered pan. Use it for breakfast and dinner before buying a fresh loaf."),
+    tip!("خبز الفريزر يُحمّص مباشرة", "Frozen bread toasts straight from the freezer", "bread",
+        "لا تنتظر ذوبان الخبز المجمد؛ ضعه في المحمصة أو الفرن مباشرة. قسّم الرغيف قبل التخزين لتأخذ ما تحتاجه فقط.",
+        "Do not thaw frozen bread first; toast or bake it straight from the freezer. Split the loaf before storing so you only take what you need."),
+    tip!("الخبز الزائد → فتات مفيد", "Extra bread becomes useful crumbs", "bread",
+        "جفّف الخبز الزائد واطحنه واحتفظ به للقليات أو تحمير الكفتة أو إضافة قوام للشوربة بدل شراء بقسماط.",
+        "Dry and grind extra bread for coating fried food, meatballs, or thickening soup instead of buying breadcrumbs."),
+    tip!("التوابل تُشترى بمبلغ محدد", "Buy spices by a set amount", "spices",
+        "الملح والكمون والفلفل لا تُشترى بالكيلو للبيت الصغير. حدّد مبلغًا مثل 20 جنيهًا للملح واشترِ حسب السعر المعلن، وسجّل السعر والتاريخ.",
+        "Salt, cumin and pepper are not bought by the kilo for a small home. Set an amount such as 20 EGP for salt, buy at the observed price, and record the price and date."),
+    tip!("قارن سعر العبوة لا سعر القطعة", "Compare pack value, not pack price", "spices",
+        "عبوة 30 بيضة بـ130 جنيهًا ليست بالضرورة أغلى من 15 بيضة بـ65. احسب السعر للوحدة قبل اختيار الأرخص.",
+        "A pack of 30 eggs for 130 EGP is not automatically dearer than 15 for 65. Work out the price per unit before choosing the cheaper option."),
+    tip!("البهارات المحمّصة تعطي نكهة أكبر", "Toasting spices deepens flavour", "spices",
+        "حمّص الكمون أو الكزبرة في مقلاة جافة ثوانٍ قبل إضافتها. كمية أقل من البهارات المحمّصة تعطي طعمًا أوضح من كمية كبيرة نيئة.",
+        "Toast cumin or coriander in a dry pan for a few seconds before adding. Less toasted spice gives a clearer flavour than a large raw amount."),
+    tip!("احفظ التوابل بعيدًا عن الرطوبة", "Keep spices away from moisture", "spices",
+        "احفظ الملح والبهارات في برطمانات مغلقة بعيدًا عن البخار فوق البوتاجاز. الرطوبة تكتل الملح وتفسد النكهة.",
+        "Store salt and spices in sealed jars away from steam above the stove. Moisture clumps salt and dulls flavour."),
+    tip!("نقع البقوليات يختصر الطبخ", "Soak legumes to shorten cooking", "legumes",
+        "انقع العدس أو الفول قبل الطبخ لتقليل الوقت وتحسين الهضم. راجع قواعد الأسرة قبل إضافة بقوليات إذا كان هناك تحسس أو استثناء.",
+        "Soak lentils or beans before cooking to shorten the time and improve digestibility. Check household rules before adding legumes if there are allergies or exclusions."),
+    tip!("طبق بقوليات واحد في الأسبوع على الأقل", "At least one legume meal a week", "legumes",
+        "اجعل للبقوليات وجبة ثابتة أسبوعيًا مثل العدس أو الفول أو المجدرة. القاعدة في التطبيق تقترح ذلك ولا تجبرك عليه.",
+        "Keep one regular legume meal a week, such as lentils, beans or mujaddara. The app rule suggests this rather than forcing it."),
+    tip!("قطّع الخضار مرة واحدة", "Chop vegetables once", "prep",
+        "في يوم التحضير قطّع البصل والطماطم والخضار وحفظها في علب. الطبخ في أيام الأسبوع يصبح أسرع ويقل التفكير في كل وجبة.",
+        "On a prep day, chop onion, tomato and vegetables and store them in containers. Weeknight cooking becomes faster with fewer decisions."),
+    tip!("صلصة الطماطم المبشورة تختصر الوقت", "Grated tomato sauce saves time", "prep",
+        "بشر الطماطم واطبخها مع قليل من الزيت والملح، ثم خزّنها. تصبح أساسًا سريعًا للأرز والمعكرونة والشوربة.",
+        "Grate tomato and cook it with a little oil and salt, then store it. It becomes a quick base for rice, pasta and soup."),
+    tip!("القائمة تُرتّب حسب القسم", "Order the list by shop section", "budget",
+        "امشِ في القائمة حسب قسم المتجر: خضار، ثم لحوم، ثم بقالة. تقل النسيان والعودة لنفس الممر.",
+        "Follow the list in shop order: produce, meat, then groceries. You forget less and avoid walking the same aisle twice."),
+    tip!("قارن قبل الشراء، لا بعده", "Compare before you buy", "budget",
+        "سجّل السعر في التطبيق يوم الشراء مع اسم التاجر والتاريخ. ملاحظة واحدة في وقتها تغنيك عن البحث عن السعر الحقيقي لاحقًا.",
+        "Record the price in the app on the day you buy it with the merchant and date. One note now saves hunting for the real price later."),
+    tip!("لا تثق بسعر قديم", "Do not trust an old price", "budget",
+        "السعر ملاحظة مؤرخة وليست حقيقة دائمة. إذا مرّ أكثر من أسبوعين فاعتبره قديمًا وأعد التحقق قبل الاعتماد عليه.",
+        "A price is a dated observation, not a permanent fact. If more than two weeks have passed, treat it as stale and check again."),
+    tip!("اترك هامشًا صغيرًا في الميزانية", "Leave a small buffer", "budget",
+        "اجعل جزءًا صغيرًا من الميزانية احتياطيًا للزيادة غير المتوقعة في سعر منتج واحد بدل إلغاء وجبة كاملة.",
+        "Keep a small part of the budget as a buffer for one unexpected price rise rather than cancelling a whole meal."),
+    tip!("الفطور والغداء والعشاء بنظام", "A simple rhythm for breakfast, lunch and dinner", "planning",
+        "الخبز أساس الفطور والعشاء عند كثير من العائلات، والأرز أساس الغداء. ثبّت الأساس وغيّر الطبق الذي بجانبه لتقل الفوضى والتكلفة.",
+        "Bread is a staple at breakfast and dinner for many families, rice at lunch. Fix the staple and vary what sits beside it to cut cost and confusion."),
+    tip!("اسأل المساعد ولا تصدّق أرقامه", "Ask the assistant, verify its numbers", "planning",
+        "المساعد يقترح ويشرح لكنه لا يخترع الأسعار ولا يعدّل بياناتك. أي تغيير في القواعد أو الميزانية يظهر كاقتراح تحتاج موافقتك.",
+        "The assistant suggests and explains but never invents prices or edits your data. Any rule or budget change appears as a proposal you must approve."),
+    tip!("اذكر تفضيلاتك للمساعد", "Tell the assistant what matters", "planning",
+        "اكتب جملة مثل «لا نحب السمك مرتين في الأسبوع» كقاعدة إرشادية. التطبيق يمررها للمساعد ليأخذها في اعتباره مع بقية القواعد.",
+        "Write a sentence such as 'we do not like fish twice a week' as a guidance rule. The app passes it to the assistant alongside your other rules."),
+];
+

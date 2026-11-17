@@ -11,6 +11,7 @@
 		{ href: '/more/rules', icon: '📏', key: 'rules' },
 		{ href: '/more/occasions', icon: '🎉', key: 'occasions' },
 		{ href: '/more/cooking', icon: '🫕', key: 'cooking' },
+		{ href: '/more/tips', icon: '💡', key: 'tips' },
 		{ href: '/more/assistant', icon: '🤖', key: 'assistant' },
 		{ href: '/more/imports', icon: '📥', key: 'imports' },
 		{ href: '/more/settings', icon: '⚙️', key: 'settings' }

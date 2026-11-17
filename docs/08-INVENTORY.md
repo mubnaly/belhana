@@ -3,14 +3,22 @@
 ## Model
 - Locations: pantry, fridge, freezer (seeded per household).
 - Lots: product, quantity, unit, location, expiry date, estimated cost (piasters), notes, source
-  (purchase/batch-prep), created time.
+  (purchase/batch-prep), created time, and `carry_over` (default `1`).
 - Movements: add, consume, discard, adjust — every stock change is recorded, never a blind overwrite.
+
+## Leftover carry-over
+Anything not used this week stays available next week. New lots default to `carry_over = true`;
+`GET /api/inventory/leftovers` lists the carry-over lots and `POST /api/inventory/lots/{id}/carry-over
+{carry_over: bool}` opts a lot in or out. The inventory screen shows a "📅 البقايا" section with a
+toggle per lot. FEFO consumption orders carry-over lots first, and the planner prefers them over buying
+again; plan explanations call out when a leftover is reused.
 
 ## API / UI
 `/api/inventory/locations`, `/api/inventory/lots`, `/api/inventory/movements`,
-`/api/inventory/valuation`, `/api/inventory/expiring`. The inventory screen lists lots with expiry
-chips, allows adding a lot with product/location/quantity/expiry/cost, and shows total value.
-Valuation uses `CAST(... AS INTEGER)` when reading SQLite REAL columns to keep integer piasters.
+`/api/inventory/valuation`, `/api/inventory/expiring`, `/api/inventory/leftovers`. The inventory screen
+lists lots with expiry chips, allows adding a lot with product/location/quantity/expiry/cost, and shows
+total value. Valuation uses `CAST(... AS INTEGER)` when reading SQLite REAL columns to keep integer
+piasters.
 
 ## Expiry reminders
 `maintenance_worker --once` (or scheduled) creates a deduplicated `expiry_reminder` notification per

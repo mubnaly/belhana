@@ -14,3 +14,4 @@ pub mod pricing_routes;
 pub mod recipes_routes;
 pub mod rules_routes;
 pub mod shopping_routes;
+pub mod tips_routes;

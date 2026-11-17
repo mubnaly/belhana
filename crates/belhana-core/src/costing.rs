@@ -163,3 +163,65 @@ pub async fn ingredient_quantities(
         .filter_map(|ing| ing.product_id.clone().map(|pid| (pid, ing.quantity * scale, ing.unit.clone())))
         .collect())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::pricing::PriceObservation;
+
+    fn obs(amount_minor: i64, unit: &str, size: Option<f64>, package_unit: Option<&str>) -> PriceObservation {
+        PriceObservation {
+            id: "o".into(),
+            product_id: Some("p".into()),
+            product_variant: None,
+            merchant_id: None,
+            location_id: None,
+            amount_minor: Some(amount_minor),
+            currency: "EGP".into(),
+            unit: Some(unit.into()),
+            unit_status: "confirmed".into(),
+            package_size: size,
+            package_unit: package_unit.map(|s| s.to_string()),
+            observation_date: None,
+            submitted_at: String::new(),
+            source_type: "manual".into(),
+            source_url: None,
+            raw_text: None,
+            raw_product_label: None,
+            confidence: None,
+            review_status: "verified".into(),
+            previous_amount_minor: None,
+            promotion_note: None,
+            reviewed_by: None,
+            reviewed_at: None,
+            batch_id: None,
+            baseline_owner_user_id: None,
+            occurrence_index: 0,
+            notes: None,
+        }
+    }
+
+    #[test]
+    fn package_price_is_divided_by_pack_size() {
+        // 30 eggs for 130 EGP → 433.33 piasters per piece.
+        let o = obs(13000, "piece", Some(30.0), Some("piece"));
+        let per = price_per_unit(&o, "piece").expect("resolved");
+        assert!((per - 13000.0 / 30.0).abs() < 0.001, "per=$per");
+    }
+
+    #[test]
+    fn package_unit_is_used_when_observation_unit_differs() {
+        // A carton observation whose package_unit is 'piece' resolves to per-piece.
+        let o = obs(6500, "carton", Some(15.0), Some("piece"));
+        let per = price_per_unit(&o, "piece").expect("resolved");
+        assert!((per - 6500.0 / 15.0).abs() < 0.001, "per=$per");
+    }
+
+    #[test]
+    fn container_units_do_not_convert_universally() {
+        // carton has no universal conversion to piece; without package metadata
+        // the comparison must stay unresolved rather than guessing.
+        let o = obs(13000, "carton", None, None);
+        assert!(price_per_unit(&o, "piece").is_none());
+    }
+}

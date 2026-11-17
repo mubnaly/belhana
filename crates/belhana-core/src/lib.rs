@@ -18,6 +18,7 @@ pub mod pricing;
 pub mod recipes;
 pub mod rules;
 pub mod shopping;
+pub mod tips;
 
 use belhana_common::CommonError;
 use chrono::Utc;

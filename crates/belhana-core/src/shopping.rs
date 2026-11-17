@@ -40,6 +40,8 @@ pub struct ShoppingItem {
     pub price_observation_id: Option<String>,
     pub merchant_id: Option<String>,
     pub price_freshness: Option<String>,
+    /// Set for "buy this much money's worth" lines (spices such as salt).
+    pub buy_by_amount_minor: Option<i64>,
     pub purchased_qty: Option<f64>,
     pub actual_price_minor: Option<i64>,
     pub purchased: bool,
@@ -65,6 +67,7 @@ impl From<sqlx::sqlite::SqliteRow> for ShoppingItem {
             price_observation_id: r.get("price_observation_id"),
             merchant_id: r.get("merchant_id"),
             price_freshness: r.get("price_freshness"),
+            buy_by_amount_minor: r.get("buy_by_amount_minor"),
             purchased_qty: r.get("purchased_qty"),
             actual_price_minor: r.get("actual_price_minor"),
             purchased: r.get::<i64, _>("purchased") != 0,
@@ -202,6 +205,40 @@ pub async fn generate_from_plan(
         .map_err(map_db)?;
         sort += 1;
     }
+    // Fixed-spend lines: spices are bought by money ("20 EGP of salt"), not by
+    // a recipe quantity. Only add a line when the product is not already on the
+    // list from the plan, so we never duplicate a purchase.
+    for (pid, amount) in crate::rules::fixed_spends(pool, household_id).await? {
+        let already_listed = required
+            .keys()
+            .any(|k| k == &pid || k.starts_with(&format!("{pid}|")));
+        if already_listed {
+            continue;
+        }
+        if catalog::get_product(pool, &pid).await.is_err() {
+            continue;
+        }
+        estimated_total += amount;
+        sqlx::query(
+            "INSERT INTO shopping_list_items
+                (id, list_id, product_id, required_qty, required_unit, stock_qty, shopping_qty, shopping_unit,
+                 estimated_unit_price_minor, estimated_total_minor, price_freshness, buy_by_amount_minor, notes, status, sort)
+             VALUES (?, ?, ?, 1, 'spend', 0, 1, 'spend', ?, ?, 'none', ?, ?, 'pending', ?)",
+        )
+        .bind(new_id())
+        .bind(&list_id)
+        .bind(&pid)
+        .bind(amount)
+        .bind(amount)
+        .bind(amount)
+        .bind(Some("fixed spend rule — buy this amount of money"))
+        .bind(sort)
+        .execute(pool)
+        .await
+        .map_err(map_db)?;
+        sort += 1;
+    }
+
     sqlx::query("UPDATE shopping_lists SET estimated_total_minor = ? WHERE id = ?")
         .bind(estimated_total)
         .bind(&list_id)
@@ -353,30 +390,33 @@ pub async fn complete_trip(
         .execute(pool)
         .await
         .map_err(map_db)?;
-        // new stock lot from this purchase
-        let lot = inventory::add_lot(
-            pool,
-            household_id,
-            &inventory::CreateLot {
-                product_id: item.product_id.clone(),
-                quantity: qty,
-                unit: item.shopping_unit.clone(),
-                location_id: None,
-                purchase_date: Some(date.clone()),
-                expiry_date: None,
-                estimated_cost_minor: price,
-                notes: Some("shopping purchase".into()),
-            },
-            "shopping",
-        )
-        .await?;
-        sqlx::query("UPDATE purchase_items SET lot_id = ? WHERE trip_id = ? AND product_id = ?")
-            .bind(&lot.id)
-            .bind(&trip_id)
-            .bind(&item.product_id)
-            .execute(pool)
-            .await
-            .map_err(map_db)?;
+        // A fixed-spend purchase (e.g. 20 EGP of salt) has no known quantity,
+        // so it must not create a fake "1 spend" stock lot.
+        if item.buy_by_amount_minor.is_none() {
+            let lot = inventory::add_lot(
+                pool,
+                household_id,
+                &inventory::CreateLot {
+                    product_id: item.product_id.clone(),
+                    quantity: qty,
+                    unit: item.shopping_unit.clone(),
+                    location_id: None,
+                    purchase_date: Some(date.clone()),
+                    expiry_date: None,
+                    estimated_cost_minor: price,
+                    notes: Some("shopping purchase".into()),
+                },
+                "shopping",
+            )
+            .await?;
+            sqlx::query("UPDATE purchase_items SET lot_id = ? WHERE trip_id = ? AND product_id = ?")
+                .bind(&lot.id)
+                .bind(&trip_id)
+                .bind(&item.product_id)
+                .execute(pool)
+                .await
+                .map_err(map_db)?;
+        }
     }
 
     if actual_total > 0 {

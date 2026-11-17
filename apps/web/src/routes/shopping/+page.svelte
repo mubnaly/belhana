@@ -29,6 +29,13 @@
 		return money(minor);
 	}
 
+	// Quantities come back from SQLite REAL arithmetic (e.g. 1.5999999999999999 kg).
+	// Trim floating-point noise for display without changing the stored value.
+	function qty(n) {
+		if (n == null) return '';
+		return String(Math.round(Number(n) * 1000) / 1000);
+	}
+
 	async function setPurchased(item, purchased) {
 		try {
 			list = await api.post(`/api/shopping-lists/${list.id}/items/${item.id}`, { purchased });
@@ -40,10 +47,9 @@
 
 	async function updateItem(item) {
 		try {
-			list = await api.post(`/api/shopping-lists/${list.id}/items/${item.id}`, {
-				purchased_qty: item.purchased_qty,
-				actual_price_minor: item.actual_price_minor
-			});
+			const body = { actual_price_minor: item.actual_price_minor };
+			if (!item.buy_by_amount_minor) body.purchased_qty = item.purchased_qty;
+			list = await api.post(`/api/shopping-lists/${list.id}/items/${item.id}`, body);
 			showQty[item.id] = false;
 		} catch (e) {
 			err = e.message;
@@ -101,7 +107,11 @@
 						<span>
 							<b>{item.product_name_ar}</b><br />
 							<span class="muted">
-								{item.shopping_qty} {item.shopping_unit}
+								{#if item.buy_by_amount_minor}
+									<span class="chip">{t('buyByAmount')}</span> ~{moneyf(item.buy_by_amount_minor)}
+								{:else}
+									{qty(item.shopping_qty)} {item.shopping_unit}
+								{/if}
 								{#if item.estimated_total_minor != null} · ~{moneyf(item.estimated_total_minor)}{/if}
 								{#if item.price_freshness === 'stale'}<span class="chip warn">{t('stale')}</span>{/if}
 							</span>
@@ -112,10 +122,12 @@
 
 				{#if showQty[item.id]}
 					<div class="field-row" style="margin-top:.5rem">
-						<div>
-							<label>{t('purchasedQty')}</label>
-							<input type="number" step="0.01" bind:value={item.purchased_qty} placeholder={String(item.shopping_qty)} />
-						</div>
+						{#if !item.buy_by_amount_minor}
+							<div>
+								<label>{t('purchasedQty')}</label>
+								<input type="number" step="0.01" bind:value={item.purchased_qty} placeholder={qty(item.shopping_qty)} />
+							</div>
+						{/if}
 						<div>
 							<label>{t('actualPrice')} ({lang === 'ar' ? 'قرش' : 'piasters'})</label>
 							<input type="number" bind:value={item.actual_price_minor} placeholder={String(item.estimated_total_minor ?? '')} />

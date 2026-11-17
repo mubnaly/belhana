@@ -56,6 +56,24 @@ async fn chat(State(state): State<SharedState>, user: AuthUser, Json(req): Json<
         })));
     };
 
+    // Household free-text instruction rules are injected server-side into the
+    // system context. They are guidance only — the AI still cannot write data
+    // except through proposals that a human must approve.
+    let instructions = belhana_core::rules::ai_instruction_sentences(&state.pool, &user.household_id).await?;
+    let system_prompt = if instructions.is_empty() {
+        belhana_ai::SYSTEM_PROMPT.to_string()
+    } else {
+        format!(
+            "{}\n\n## تعليمات خاصة بهذه الأسرة (التزم بها قدر الإمكان):\n{}",
+            belhana_ai::SYSTEM_PROMPT,
+            instructions
+                .iter()
+                .map(|s| format!("- {s}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
+    };
+
     let schemas = tools::tool_schemas();
     let mut msgs: Vec<belhana_ai::ChatMessage> = req
         .messages
@@ -72,7 +90,7 @@ async fn chat(State(state): State<SharedState>, user: AuthUser, Json(req): Json<
     let mut reply = String::new();
     for _hop in 0..5 {
         let result = provider
-            .chat(belhana_ai::SYSTEM_PROMPT, &msgs, &schemas)
+            .chat(&system_prompt, &msgs, &schemas)
             .await
             .map_err(|e| ApiError::from(e))?;
         reply = result.reply.clone();
@@ -234,7 +252,13 @@ async fn apply_proposal(
         "add_rule" => {
             let input = belhana_core::rules::CreateRule {
                 rule_type: payload["rule_type"].as_str().unwrap_or_default().into(),
-                priority: payload["priority"].as_str().unwrap_or("must").into(),
+                // `must` and `hard` are accepted from older proposals; both map
+                // onto the rule domain's valid `hard` priority.
+                priority: match payload["priority"].as_str() {
+                    Some("hard") | Some("must") => "hard",
+                    _ => "soft",
+                }
+                .into(),
                 params: payload["params"].clone(),
                 notes: payload["notes"].as_str().map(|s| s.to_string()),
             };

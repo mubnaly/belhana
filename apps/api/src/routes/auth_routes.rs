@@ -118,6 +118,9 @@ async fn register(
         },
     )
     .await?;
+    // Give every new family the household defaults (AI instruction sentence,
+    // staple foods, spice fixed spend, leftovers carry-over).
+    crate::seed::seed_household_rules(&state.pool, &hh.id).await?;
     let refresh = belhana_auth::create_session(&state.pool, &user_id, None).await?;
     let mut tokens = issue_tokens(&state, &user_id, &hh.id, "owner")?;
     tokens["refresh_token"] = json!(refresh);

@@ -1,7 +1,8 @@
 //! Idempotent seed data: product catalog, categories, units, recipes, batch
 //! guides, user baseline prices, and the Olad Zain price post import.
 
-use belhana_core::catalog;
+use belhana_core::{catalog, rules};
+use serde_json::json;
 use sqlx::{Row, SqlitePool};
 
 use crate::seed_data;
@@ -13,6 +14,8 @@ pub async fn run(pool: &SqlitePool) -> Result<(), belhana_common::CommonError> {
     seed_batch_guides(pool).await?;
     seed_baseline_prices(pool).await?;
     seed_olad_zain(pool).await?;
+    seed_meal_tips(pool).await?;
+    seed_rules_for_existing_households(pool).await?;
     Ok(())
 }
 
@@ -200,6 +203,103 @@ async fn seed_baseline_prices(pool: &SqlitePool) -> Result<(), belhana_common::C
 
 async fn seed_olad_zain(pool: &SqlitePool) -> Result<(), belhana_common::CommonError> {
     belhana_core::imports::seed_olad_zain(pool, seed_data::OLAD_ZAIN_POST).await
+}
+
+async fn seed_meal_tips(pool: &SqlitePool) -> Result<(), belhana_common::CommonError> {
+    for (i, tip) in seed_data::MEAL_TIPS.iter().enumerate() {
+        let exists: Option<String> = sqlx::query_scalar("SELECT id FROM meal_tips WHERE title_ar = ? AND is_system = 1")
+            .bind(tip.title_ar)
+            .fetch_optional(pool)
+            .await
+            .map_err(belhana_core::map_db)?;
+        if exists.is_some() {
+            continue;
+        }
+        sqlx::query(
+            "INSERT INTO meal_tips (id, household_id, title_ar, title_en, category, body_ar, body_en, sort, is_system, created_at)
+             VALUES (?, NULL, ?, ?, ?, ?, ?, ?, 1, datetime('now'))",
+        )
+        .append_id()
+        .bind(tip.title_ar)
+        .bind(tip.title_en)
+        .bind(tip.category)
+        .bind(tip.body_ar)
+        .bind(tip.body_en)
+        .bind(i as i64)
+        .execute(pool)
+        .await
+        .map_err(belhana_core::map_db)?;
+    }
+    Ok(())
+}
+
+/// Default household rules requested by the family: an instruction sentence for
+/// the assistant, staple foods by meal period, a fixed spice budget, and
+/// explicit next-week carry-over. Idempotent and marked `system-default` so the
+/// user can edit or delete them without them reappearing.
+pub async fn seed_household_rules(
+    pool: &SqlitePool,
+    household_id: &str,
+) -> Result<(), belhana_common::CommonError> {
+    let rice = catalog::find_by_arabic_name(pool, "أرز").await?.map(|p| p.id);
+    let bread = catalog::find_by_arabic_name(pool, "خبز بلدي").await?.map(|p| p.id);
+    let salt = catalog::find_by_arabic_name(pool, "ملح").await?.map(|p| p.id);
+
+    let mut defs: Vec<(&str, serde_json::Value)> = vec![(
+        "ai_instruction",
+        json!({"sentence": "فكّر في بقايا المخزن أولًا، واجعل الأرز غداءً معتادًا والخبز أساس الفطور والعشاء، واشترِ التوابل بمبلغ محدد مثل 20 جنيهًا من الملح بدل شراء الكيلو."}),
+    )];
+    if let Some(id) = rice {
+        defs.push(("meal_staple", json!({"period": "lunch", "product_id": id})));
+    }
+    if let Some(id) = bread {
+        defs.push(("meal_staple", json!({"period": "breakfast", "product_id": id})));
+        defs.push(("meal_staple", json!({"period": "dinner", "product_id": id})));
+    }
+    if let Some(id) = salt {
+        defs.push(("fixed_spend", json!({"product_id": id, "amount_minor": 2000})));
+    }
+    defs.push(("leftover_carryover", json!({"carry_over": true})));
+
+    for (rule_type, params) in defs {
+        let params_text = params.to_string();
+        let exists: Option<String> = sqlx::query_scalar(
+            "SELECT id FROM household_rules
+             WHERE household_id = ? AND rule_type = ? AND params = ? AND notes = 'system-default'",
+        )
+        .bind(household_id)
+        .bind(rule_type)
+        .bind(&params_text)
+        .fetch_optional(pool)
+        .await
+        .map_err(belhana_core::map_db)?;
+        if exists.is_some() {
+            continue;
+        }
+        rules::create_rule(
+            pool,
+            household_id,
+            &rules::CreateRule {
+                rule_type: rule_type.to_string(),
+                priority: "soft".to_string(),
+                params,
+                notes: Some("system-default".to_string()),
+            },
+        )
+        .await?;
+    }
+    Ok(())
+}
+
+async fn seed_rules_for_existing_households(pool: &SqlitePool) -> Result<(), belhana_common::CommonError> {
+    let ids: Vec<String> = sqlx::query_scalar("SELECT id FROM households")
+        .fetch_all(pool)
+        .await
+        .map_err(belhana_core::map_db)?;
+    for id in ids {
+        seed_household_rules(pool, &id).await?;
+    }
+    Ok(())
 }
 
 // tiny extension to avoid repeating new_id() everywhere

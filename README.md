@@ -49,23 +49,35 @@ Desktop shell: `cd apps/desktop && npm install && npm run tauri dev` (WebView2 o
 | `apps/web` | SvelteKit 5 + TypeScript-ready SPA, Arabic RTL default, English switch |
 | `apps/desktop` | Tauri 2 shell hosting the SPA |
 | `workers/maintenance_worker` | Stale-price sweep, expiry notifications, pruning |
-| `database/migrations/sqlite` | 10 ordered SQLx migrations |
-| `scripts` | PowerShell smoke tests (Arabic payloads kept in `.json` files) |
+| `database/migrations/sqlite` | 11 ordered SQLx migrations (`0011_guidance_and_purchasing`) |
+| `scripts` | `smoke_guidance.py` (Python, 30 checks) + PowerShell smoke tests (Arabic payloads in `.json` files) |
 | `docs` | Product, architecture, schema and operational documentation |
 
 The original 19-crate sketch in the master prompt was consolidated into six crates: one per
 architectural layer instead of one per feature. See `docs/02-ARCHITECTURE.md`.
+
+## Guidance & purchasing features
+
+On top of the MVP, each household gets six seeded rules: an `ai_instruction` sentence (injected into the
+AI system prompt only), `meal_staple` preferences for breakfast/lunch/dinner, a `fixed_spend` amount for
+items such as spices (buy 20 EGP of salt rather than a kilo), and `leftover_carryover`. Unused food
+carries into the next week via `carry_over` stock lots, which the planner consumes first. Prices can be
+entered manually with package metadata (e.g. 30 eggs for 130 EGP) and edited afterwards with a full
+audit trail; cheapest-per-unit selection compares packs in one reference unit and never mixes units.
+The `/more/tips` page offers 25 filterable meal tips, and generated plans explain staple fit and
+leftover use. Mutating AI actions remain proposals that require human approval.
 
 ## Tests
 
 ```powershell
 cargo test --workspace
 cd apps/web && npm run build
+python scripts/smoke_guidance.py   # requires the API running on 127.0.0.1:8080
 ```
 
-20 unit/integration tests cover money/units/text, auth tokens, and planning/scenario logic.
-`scripts/smoke*.ps1` exercise the full API against the seeded SQLite database: auth + refresh rotation,
-budget, plan generation, shopping/purchase/inventory, price review, occasions, imports and AI manual mode.
+23 unit/integration tests cover money/units/text, auth tokens, package prices and planning/scenario
+logic. `scripts/smoke*.ps1` exercise the full MVP API against the seeded SQLite database; the Python
+`scripts/smoke_guidance.py` covers the guidance/purchasing features end to end (30 checks).
 
 ## Safety properties
 

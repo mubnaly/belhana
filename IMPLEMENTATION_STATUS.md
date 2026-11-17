@@ -8,12 +8,12 @@ it deliberately does not claim unverified integrations.
 | Component | State | Evidence |
 | --- | --- | --- |
 | `belhana-common` | ✅ | 8 unit tests; money is integer piasters |
-| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (10 files) |
+| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (11 files, incl. `0011_guidance_and_purchasing`) |
 | `belhana-auth` | ✅ | 2 tests; Argon2 + JWT access/refresh rotation |
-| `belhana-core` | ✅ | 10 tests; domains implemented against SQLite |
-| `belhana-ai` | ✅ | provider abstraction, tool schemas, proposal guardrails; no live API key tested |
-| `apps/api` | ✅ | ~80 route declarations in 16 modules; startup migrate + seed; healthz |
-| `apps/web` | ✅ | 15 Svelte pages, Arabic RTL/English, static build + browser E2E pass |
+| `belhana-core` | ✅ | 13 tests; domains implemented against SQLite (incl. package-price tests) |
+| `belhana-ai` | ✅ | provider abstraction, tool schemas, proposal guardrails; instruction rules in system prompt; no live API key tested |
+| `apps/api` | ✅ | ~85 route declarations in 17 modules; startup migrate + seed; healthz |
+| `apps/web` | ✅ | 16 Svelte screens (incl. meal tips), Arabic RTL/English, static build + browser E2E pass |
 | `apps/desktop` | 🟡 | Tauri 2 shell compiles (`cargo check`); WebView2 required to launch the Windows binary |
 | `workers/maintenance_worker` | ✅ | `--once` sweep ran clean (stale prices, expiry reminders, pruning) |
 
@@ -37,6 +37,22 @@ it deliberately does not claim unverified integrations.
     Without a key the app stays fully functional in manual mode.
 16. ✅ Arabic default with English toggle (reactivity verified in the browser).
 17. 🟡 Web build + Tauri shell delivered; running the desktop binary depends on local WebView2 tooling.
+18. ✅ Household rules for AI instruction sentences, meal staples (breakfast/lunch/dinner), fixed-spend
+    purchases and leftover carry-over; six defaults seeded per household.
+19. ✅ Manual/package price entry and editing with audit (`previous_amount_minor`, `edited` event) and
+    per-unit cheapest-price comparison that never mixes units.
+20. ✅ Leftover carry-over lots (default on, FEFO-first use) and a filterable meal-tips page.
+21. ✅ Fixed-spend shopping lines (e.g. 20 EGP of salt) that record expense but create no fake stock lot.
+
+## Guidance-feature verification pass (2026-11-17)
+
+`python scripts/smoke_guidance.py` passed 30/30 checks: 6 default rules with the expected types and
+params, 25 tips / 9 categories, carry-over default/toggle/list, package prices and cheapest-per-unit
+selection, price edit with retained prior value, staple/leftover explanation text, fixed-spend shopping
+line, no `spend` stock lot on trip completion, and the `edited` audit event. Browser checks on
+`/more/tips`, `/more/rules`, `/more/prices`, `/inventory` and `/shopping` showed no console errors, and
+the English toggle switched page content and bottom-nav labels. Shopping quantities are rounded for
+display (`1.6 kg`). `cargo test --workspace` passes 23 tests.
 
 ## Final verification pass (2026-11-17)
 
@@ -48,7 +64,7 @@ no longer bounces to login; language switching now re-keys page content; and
 `GET /api/imports/batches/{id}/source-post` was added for the review screen's original-post view.
 Also corrected the real `Money` `Add`/`Sub` implementations (explicit integer arithmetic), removed a
 duplicate Arabic unit pattern and a dead assignment, and generated `icon.ico` so the Tauri crate checks
-cleanly. `cargo test --workspace` passes 20 tests with no warnings.
+cleanly. (At MVP delivery `cargo test --workspace` passed 20 tests; it now passes 23 after phase 13.)
 
 ## Known limitations / open work
 
