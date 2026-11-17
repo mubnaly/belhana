@@ -49,7 +49,7 @@
 			<input id="email" type="email" bind:value={email} required autocomplete="email" />
 
 			<label for="password">{t('password')}</label>
-			<input id="password" type="password" bind:value={password} required minlength="8" autocomplete="new-password" />
+			<input id="password" type="password" bind:value={password} required minlength="3" autocomplete="new-password" />
 
 			{#if err}<div class="error-msg">{err}</div>{/if}
 

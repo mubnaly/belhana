@@ -67,9 +67,9 @@ async fn register(
     if !valid_email(&email) {
         return Err(ApiError::from(CommonError::Validation("البريد الإلكتروني غير صالح".into())));
     }
-    if req.password.len() < 8 {
+    if req.password.len() < 3 {
         return Err(ApiError::from(CommonError::Validation(
-            "كلمة المرور يجب ألا تقل عن 8 أحرف".into(),
+            "كلمة المرور يجب ألا تقل عن 3 أحرف".into(),
         )));
     }
     let exists: Option<String> = sqlx::query_scalar("SELECT id FROM users WHERE email = ?")
