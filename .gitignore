@@ -1,0 +1,12 @@
+node_modules/
+target/
+dist/
+.svelte-kit/
+build/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.local
+.DS_Store
+Cargo.lock.orig
