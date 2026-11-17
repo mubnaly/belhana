@@ -126,7 +126,6 @@ pub fn parse_arabic_quantity_word(word: &str) -> Option<(f64, Unit)> {
     match w {
         "كيلو" | "كجم" | "كيلوجرام" => Some((1.0, Unit::Kg)),
         "نص" | "نصف كيلو" | "نص كيلو" => Some((0.5, Unit::Kg)),
-        "نص كيلو" => Some((0.5, Unit::Kg)),
         "ربع كيلو" | "ربع" => Some((0.25, Unit::Kg)),
         "جرام" => Some((1.0, Unit::G)),
         "لتر" => Some((1.0, Unit::Liter)),

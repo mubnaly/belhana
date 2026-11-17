@@ -10,7 +10,9 @@ path = "src/main.rs"
 [dependencies]
 belhana-db = { path = "../../crates/belhana-db" }
 belhana-core = { path = "../../crates/belhana-core" }
+belhana-common = { path = "../../crates/belhana-common" }
 tokio = { workspace = true }
 sqlx = { workspace = true }
+chrono = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

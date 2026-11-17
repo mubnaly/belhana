@@ -1,7 +1,6 @@
 use belhana_common::CommonError;
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
-use uuid::Uuid;
 
 use crate::{map_db, new_id, now_rfc3339};
 

@@ -86,14 +86,14 @@ impl std::fmt::Display for Money {
 impl std::ops::Add for Money {
     type Output = Money;
     fn add(self, rhs: Money) -> Money {
-        self.add(rhs)
+        Money::egp(self.minor + rhs.minor)
     }
 }
 
 impl std::ops::Sub for Money {
     type Output = Money;
     fn sub(self, rhs: Money) -> Money {
-        self.sub(rhs)
+        Money::egp(self.minor - rhs.minor)
     }
 }
 

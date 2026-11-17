@@ -258,7 +258,7 @@ pub async fn review_observation(
     action: &ReviewAction,
 ) -> Result<PriceObservation, CommonError> {
     let cur = get_observation(pool, observation_id).await?;
-    let (new_status, new_unit, new_date, new_product) = match action.action.as_str() {
+    let (new_status, _new_unit, _new_date, _new_product) = match action.action.as_str() {
         "verify" => (Some("verified".to_string()), None, None, None),
         "reject" => (Some("rejected".to_string()), None, None, None),
         "confirm_unit" => {

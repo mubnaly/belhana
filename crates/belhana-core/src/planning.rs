@@ -42,6 +42,9 @@ pub struct MissingItem {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct PlannedMealOut {
+    /// Planned-meal row id when the plan is saved (empty for in-memory runs).
+    #[serde(default)]
+    pub id: String,
     pub date: String,
     pub day_index: i64,
     pub period: String,
@@ -437,6 +440,7 @@ pub async fn generate_plan_in_memory(
                 explanation.push_str("تنبيه: مكونات مفقودة بدون سعر معروف؛ ");
             }
             slots.push(PlannedMealOut {
+                id: String::new(),
                 date: date_s.clone(),
                 day_index: day_i,
                 period: period.clone(),
@@ -746,6 +750,7 @@ pub async fn read_plan(pool: &SqlitePool, plan_id: &str) -> Result<PlanOutput, C
     let mut slots = Vec::new();
     for (i, r) in rows.into_iter().enumerate() {
         slots.push(PlannedMealOut {
+            id: r.get("id"),
             date: r.get("date"),
             day_index: i as i64,
             period: r.get("period"),
@@ -785,8 +790,10 @@ pub async fn mark_prepared(
     planned_meal_id: &str,
 ) -> Result<(), CommonError> {
     let row = sqlx::query(
-        "SELECT pm.inventory_used, p.consumption_workflow FROM planned_meals pm
-         JOIN meal_plans p ON p.id = pm.plan_id WHERE pm.id = ? AND p.household_id = ?",
+        "SELECT pm.inventory_used, h.consumption_workflow FROM planned_meals pm
+         JOIN meal_plans mp ON mp.id = pm.plan_id
+         JOIN households h ON h.id = mp.household_id
+         WHERE pm.id = ? AND mp.household_id = ?",
     )
     .bind(planned_meal_id)
     .bind(household_id)

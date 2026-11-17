@@ -12,6 +12,7 @@ belhana-common = { path = "../../crates/belhana-common" }
 belhana-db = { path = "../../crates/belhana-db" }
 belhana-auth = { path = "../../crates/belhana-auth" }
 belhana-core = { path = "../../crates/belhana-core" }
+belhana-ai = { path = "../../crates/belhana-ai" }
 axum = { workspace = true }
 tokio = { workspace = true }
 tower = { workspace = true }

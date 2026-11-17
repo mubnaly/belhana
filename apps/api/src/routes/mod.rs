@@ -1,0 +1,16 @@
+pub mod ai_routes;
+pub mod auth_routes;
+pub mod budget_routes;
+pub mod catalog_routes;
+pub mod dashboard_routes;
+pub mod events_routes;
+pub mod family_routes;
+pub mod households_routes;
+pub mod imports_routes;
+pub mod inventory_routes;
+pub mod merchants_routes;
+pub mod planning_routes;
+pub mod pricing_routes;
+pub mod recipes_routes;
+pub mod rules_routes;
+pub mod shopping_routes;

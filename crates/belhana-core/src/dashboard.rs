@@ -138,17 +138,16 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
         })
         .collect();
 
-    let mut suggestion = String::new();
-    if !expiring_stock.is_empty() {
-        suggestion = format!(
+    let suggestion = if !expiring_stock.is_empty() {
+        format!(
             "لديك {} صنف قارب على الانتهاء — استخدمه قبل الشراء",
             expiring_stock.len()
-        );
+        )
     } else if list.as_ref().map(|l| l.items.iter().any(|i| !i.purchased)).unwrap_or(false) {
-        suggestion = "قائمة المشتريات جاهزة — أكمل الشراء وسجل الأسعار الفعلية".into();
+        "قائمة المشتريات جاهزة — أكمل الشراء وسجل الأسعار الفعلية".into()
     } else {
-        suggestion = "أنت جاهز! راجع خطة الأسبوع أو استكشف وصفات اقتصادية".into();
-    }
+        "أنت جاهز! راجع خطة الأسبوع أو استكشف وصفات اقتصادية".into()
+    };
     let _ = hh_city;
     Ok(Dashboard {
         today_meals,

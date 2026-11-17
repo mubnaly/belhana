@@ -70,7 +70,7 @@ fn period_bounds(period: &str, today: chrono::NaiveDate) -> (chrono::NaiveDate, 
     }
 }
 
-use chrono::{Datelike, Weekday};
+use chrono::Datelike;
 
 /// Computes budget status: budget − actual spending − planned-but-unpurchased cost.
 pub async fn budget_status(

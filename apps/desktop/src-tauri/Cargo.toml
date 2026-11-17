@@ -1,0 +1,16 @@
+[package]
+name = "belhana-desktop"
+version = "0.1.0"
+description = "Belhana desktop shell (Tauri 2)"
+edition = "2021"
+rust-version = "1.77"
+
+# Standalone workspace: the server/worker workspace must not be forced to
+# compile the WebView toolchain just to run `cargo test --workspace`.
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

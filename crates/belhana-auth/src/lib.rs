@@ -37,12 +37,12 @@ pub fn hash_password(password: &str) -> Result<String, CommonError> {
 pub fn verify_password(password: &str, hash: &str) -> bool {
     PasswordHash::new(hash)
         .ok()
-        .and_then(|parsed| {
+        .map(|parsed| {
             Argon2::default()
                 .verify_password(password.as_bytes(), &parsed)
-                .ok()
+                .is_ok()
         })
-        .is_ok()
+        .unwrap_or(false)
 }
 
 pub fn hash_token(token: &str) -> String {

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal permissions: the SPA only needs the WebView and local API access.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

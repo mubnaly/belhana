@@ -191,7 +191,7 @@ pub async fn update_event(
     id: &str,
     input: &UpdateEvent,
 ) -> Result<Event, CommonError> {
-    let cur = get_event(pool, household_id, id).await?;
+    let _cur = get_event(pool, household_id, id).await?;
     if let Some(s) = &input.status {
         if !EVENT_STATUSES.contains(&s.as_str()) {
             return Err(CommonError::Validation(format!("invalid event status: {s}")));
@@ -592,7 +592,7 @@ pub async fn generate_event_shopping(
         "event_id": event_id,
         "menu": menu,
         "guests": guest_count,
-        "portion_equivalents": portion_equivalents(event.adults, event.children, menu.dishes.first().map(|d| 0.6).unwrap_or(0.6)),
+        "portion_equivalents": portion_equivalents(event.adults, event.children, menu.dishes.first().map(|_d| 0.6).unwrap_or(0.6)),
         "estimated_total_minor": estimated_total,
         "cost_per_guest_minor": per_guest,
         "items": items.into_iter().map(|r| serde_json::json!({

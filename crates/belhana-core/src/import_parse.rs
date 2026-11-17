@@ -101,7 +101,18 @@ fn normalize_line(s: &str) -> String {
 
 const MARKETING_HINTS: &[&str] = &[
     "أسعارنا", "توصيل", "اطلب", "خدمة", "وصلت", "جديد", "بالتوفيق", "مستعدين", "زي", "العرض",
-    "خصم", "باسم", "العنوان", "شكرا", "لا يوجد", "متاح",
+    "خصم", "باسم", "العنوان", "شكرا", "لا يوجد", "متاح", "أسعار أقل", "أفضل جودة", "طازجة يوميا",
+];
+
+/// Section headers that appear as standalone lines in price posts.
+const HEADER_LINES: &[&str] = &[
+    "الخضروات والفواكة",
+    "الفواكة",
+    "الطيور الحية والمذبوحة",
+    "المجمدات والمعجنات",
+    "البقالة",
+    "المعجنات",
+    "المجمدات",
 ];
 
 const UNIT_WORDS: &[(&str, &str, Option<f64>)] = &[
@@ -215,9 +226,10 @@ pub fn parse_post(text: &str) -> ParsedPost {
 
         let parsed = parse_price_line(&norm);
         let Some(mut line) = parsed else {
-            // No digits: possible product mention without price or marketing text.
+            // No digits: possible product mention without price, section header, or marketing text.
             let is_marketing = MARKETING_HINTS.iter().any(|h| norm.contains(h));
-            if !is_marketing && norm.chars().count() <= 60 {
+            let is_header = HEADER_LINES.iter().any(|h| norm.trim() == *h);
+            if !is_marketing && !is_header && norm.chars().count() <= 60 {
                 lines.push(ParsedLine {
                     raw: raw_line.trim().to_string(),
                     label: norm.clone(),
@@ -267,7 +279,7 @@ pub fn weekday_name_ar(w: Weekday) -> &'static str {
 /// Parses one normalized line into a candidate price line.
 pub fn parse_price_line(line: &str) -> Option<ParsedLine> {
     let mut flags = Vec::new();
-    let mut working = line.to_string();
+    let mut working = normalize_digits(line);
 
     // Leading quantity prefix like "2 كيلو سكر ..." → quantity, flag ambiguity.
     let mut proposed_qty: Option<f64> = None;
@@ -316,17 +328,21 @@ pub fn parse_price_line(line: &str) -> Option<ParsedLine> {
     } else {
         // previous price detection: "كان 200" / "بدلا من 200" / "بدل 200"
         let lowered = working.replace("بدلا", "كان").replace("بدل", "كان");
-        if lowered.contains("كان") {
-            if let Some(pos) = lowered.find("كان") {
-                let after = &lowered[pos + "كان".len()..];
-                if let Some(v) = first_number_in(after) {
-                    previous = Some(v);
-                }
+        if let Some(pos) = lowered.find("كان") {
+            let after = &lowered[pos + "كان".len()..];
+            if let Some(v) = first_number_in(after) {
+                previous = Some(v);
+            }
+            // current price is the number before the marker
+            if let Some(c) = first_number_in(&lowered[..pos]) {
+                prices.push(c);
             }
         }
-        if let Some(v) = last_number_in(&working) {
-            if previous.map(|p| p != v).unwrap_or(true) {
-                prices.push(v);
+        if prices.is_empty() {
+            if let Some(v) = last_number_in(&working) {
+                if previous.map(|p| p != v).unwrap_or(true) {
+                    prices.push(v);
+                }
             }
         }
     }

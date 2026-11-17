@@ -458,7 +458,7 @@ pub async fn expiring_soon(pool: &SqlitePool, household_id: &str, days: i64) -> 
 /// Estimated inventory valuation (explicitly an estimate).
 pub async fn valuation(pool: &SqlitePool, household_id: &str) -> Result<i64, CommonError> {
     let v: i64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(quantity * COALESCE(estimated_cost_minor, 0)), 0)
+        "SELECT CAST(COALESCE(SUM(quantity * COALESCE(estimated_cost_minor, 0)), 0) AS INTEGER)
          FROM stock_lots WHERE household_id = ? AND status = 'active'",
     )
     .bind(household_id)
