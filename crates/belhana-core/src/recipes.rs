@@ -245,7 +245,7 @@ pub async fn create_recipe(
     sqlx::query(
         "INSERT INTO recipes (id, household_id, name_ar, name_en, description, cuisine, meal_types, difficulty, prep_minutes, cook_minutes,
             default_servings, cooking_method, equipment, allergens, storage_notes, source_type, source_ref, is_active, is_system, created_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?)",
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)",
     )
     .bind(&id)
     .bind(household_id)
@@ -264,6 +264,9 @@ pub async fn create_recipe(
     .bind(&input.storage_notes)
     .bind(input.source_type.clone().unwrap_or_else(|| "user".into()))
     .bind(&input.source_ref)
+    // Recipes with no household are the shared system library; per-household
+    // recipes are user content. This keeps the seed guard and delete rules honest.
+    .bind(if household_id.is_none() { 1i64 } else { 0i64 })
     .bind(user_id)
     .bind(&now)
     .bind(&now)

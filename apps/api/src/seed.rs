@@ -85,8 +85,12 @@ async fn seed_products(pool: &SqlitePool) -> Result<(), belhana_common::CommonEr
 
 async fn seed_recipes(pool: &SqlitePool) -> Result<(), belhana_common::CommonError> {
     for r in seed_data::RECIPES {
-        let exists: Option<String> = sqlx::query_scalar("SELECT id FROM recipes WHERE name_ar = ? AND is_system = 1")
-            .bind(r.name_ar)
+        // Seeded recipes live in the shared (household_id IS NULL) library. Match on
+        // that identity rather than a flag so repeated starts never duplicate them,
+        // even for databases seeded before is_system was set correctly.
+        let exists: Option<String> =
+            sqlx::query_scalar("SELECT id FROM recipes WHERE name_ar = ? AND household_id IS NULL")
+                .bind(r.name_ar)
             .fetch_optional(pool)
             .await
             .map_err(belhana_core::map_db)?;

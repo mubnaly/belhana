@@ -31,6 +31,10 @@
 - Added three package-price unit tests in `belhana-core::costing` (`cargo test --workspace`: 23 pass).
 - Shopping quantities no longer show floating-point noise (`1.5999999999999999 kg` → `1.6 kg`).
 - Bottom-nav labels now switch language with the rest of the page.
+- Recipe seeding is now truly idempotent. `create_recipe` wrote `is_system = 0` while the seed guard
+  checked `is_system = 1`, so every startup re-inserted all 18 system recipes (216 rows in the dev DB).
+  Household-less recipes are now stored as system recipes and the guard matches `household_id IS NULL`;
+  the dev DB was deduplicated after repointing plan/event references (18 recipes, plans preserved).
 
 ### Known issues
 - See `IMPLEMENTATION_STATUS.md`. No live AI-provider key tested; Postgres/Tauri launch/offline sync

@@ -54,6 +54,12 @@ line, no `spend` stock lot on trip completion, and the `edited` audit event. Bro
 the English toggle switched page content and bottom-nav labels. Shopping quantities are rounded for
 display (`1.6 kg`). `cargo test --workspace` passes 23 tests.
 
+A full-screen preview also caught a recipe-seeding bug: `create_recipe` wrote `is_system = 0` while the
+seed guard checked `is_system = 1`, so each startup re-inserted the system library (216 rows in the dev
+DB). Household-less recipes are now marked as system recipes and the guard matches `household_id IS NULL`.
+After deduplicating the dev DB (repointing plan/event references first) the API returns 18 unique recipes
+and still returns 18 after a second restart; the plan page resolves saved meals normally.
+
 ## Final verification pass (2026-11-17)
 
 Browser E2E against the Vite dev server and seeded API verified: login → dashboard → bottom navigation →
