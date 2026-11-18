@@ -94,7 +94,12 @@ async fn seed_recipes(pool: &SqlitePool) -> Result<(), belhana_common::CommonErr
             .fetch_optional(pool)
             .await
             .map_err(belhana_core::map_db)?;
-        if exists.is_some() {
+        if let Some(recipe_id) = exists {
+            // System recipes are app content, not user data. Refresh their method
+            // and timing on every start so improved instructions reach existing
+            // installations without creating duplicate recipes. Steps are
+            // display-only for system recipes, so replacing them is safe.
+            refresh_recipe_instructions(pool, &recipe_id, r).await?;
             continue;
         }
         // map ingredient product names to catalog products
@@ -145,6 +150,52 @@ async fn seed_recipes(pool: &SqlitePool) -> Result<(), belhana_common::CommonErr
             },
         )
         .await?;
+    }
+    Ok(())
+}
+
+/// Refresh the method, timing, and serving metadata of an existing system recipe.
+/// Ingredient quantities are intentionally left alone: they may have been tuned
+/// for costing, and changing them silently would alter saved shopping lists.
+async fn refresh_recipe_instructions(
+    pool: &SqlitePool,
+    recipe_id: &str,
+    r: &seed_data::SeedRecipeDef,
+) -> Result<(), belhana_common::CommonError> {
+    sqlx::query(
+        "UPDATE recipes SET name_en = ?, description = ?, prep_minutes = ?, cook_minutes = ?,
+            default_servings = ?, cooking_method = ?, updated_at = datetime('now')
+         WHERE id = ? AND household_id IS NULL",
+    )
+    .bind(r.name_en)
+    .bind(r.description)
+    .bind(r.prep)
+    .bind(r.cook)
+    .bind(r.servings)
+    .bind(r.method)
+    .bind(recipe_id)
+    .execute(pool)
+    .await
+    .map_err(belhana_core::map_db)?;
+
+    sqlx::query("DELETE FROM recipe_steps WHERE recipe_id = ?")
+        .bind(recipe_id)
+        .execute(pool)
+        .await
+        .map_err(belhana_core::map_db)?;
+
+    for (i, text) in r.steps.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO recipe_steps (id, recipe_id, step_number, text_ar, text_en, timer_minutes)
+             VALUES (?, ?, ?, ?, NULL, NULL)",
+        )
+        .bind(belhana_core::new_id())
+        .bind(recipe_id)
+        .bind((i + 1) as i64)
+        .bind(*text)
+        .execute(pool)
+        .await
+        .map_err(belhana_core::map_db)?;
     }
     Ok(())
 }

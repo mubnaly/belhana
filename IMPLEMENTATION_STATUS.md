@@ -44,6 +44,20 @@ it deliberately does not claim unverified integrations.
 20. ✅ Leftover carry-over lots (default on, FEFO-first use) and a filterable meal-tips page.
 21. ✅ Fixed-spend shopping lines (e.g. 20 EGP of salt) that record expense but create no fake stock lot.
 
+## Recipe content expansion (2026-11-18)
+
+The shared recipe library now contains 34 dishes: the original 18 plus 16 famous Egyptian dishes
+(رقاق باللحمة، حواوشي، مكرونة بشاميل، كفتة مشوية، لوبيا باللحمة، صينية بطاطس باللحمة، كبدة إسكندراني،
+سمك سنجاري، محشي كرومب، فتة لحمة، بسبوسة، أم علي، كنافة، قطايف، مهلبية، فطير مشلتت). Every system
+recipe now has a full method with practical times, heat levels, doneness cues and storage notes, written
+originally for Belhana. Seven specialty products (سميد، جوز هند، مكسرات مشكلة، كنافة، قطايف، نشا،
+فانيليا) were added so the new dishes map to catalog products for costing and shopping.
+
+Existing system recipes are refreshed in place on startup: description, timing, cooking method and
+ordered steps are replaced, while ingredients and their costing stay untouched. Verified after the
+change: 34 recipes / 34 unique names, 130 products / 130 unique, steps present for new and existing
+dishes, and counts unchanged after a second API restart.
+
 ## Guidance-feature verification pass (2026-11-17)
 
 `python scripts/smoke_guidance.py` passed 30/30 checks: 6 default rules with the expected types and

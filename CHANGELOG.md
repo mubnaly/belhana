@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.1 — 2026-11-18 (recipe methods & famous Egyptian dishes)
+
+### Added
+- Full step-by-step cooking methods for all 18 existing system recipes, including soaking times, heat
+  levels, doneness cues, and make-ahead/storage notes. The steps are original Belhana content written
+  for this app, not copied recipe text.
+- 16 famous Egyptian dishes with complete methods: رقاق باللحمة، حواوشي، مكرونة بشاميل، كفتة مشوية،
+  لوبيا باللحمة، صينية بطاطس باللحمة، كبدة إسكندراني، سمك سنجاري، محشي كرومب، فتة لحمة، بسبوسة،
+  أم علي، كنافة، قطايف، مهلبية، فطير مشلتت.
+- Seven specialty products used by the new dishes: سميد، جوز هند، مكسرات مشكلة، كنافة، قطايف، نشا،
+  فانيليا (all with valid unit codes).
+- `seed_recipes` now refreshes the description, timing, cooking method, and ordered steps of existing
+  system recipes on startup, so improved instructions reach existing databases without duplicates.
+  Ingredient rows and costing are intentionally left untouched.
+
 ## 0.2.0 — 2026-11-17 (guidance & purchasing extensions)
 
 ### Added
