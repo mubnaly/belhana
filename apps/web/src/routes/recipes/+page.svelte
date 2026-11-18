@@ -1,42 +1,136 @@
 <script>
 	import { onMount } from 'svelte';
-	import { api, money } from '$lib/api.js';
+	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 
 	let recipes = [];
 	let err = '';
 	let loading = true;
+	let searching = false;
 	let lang = getLang();
 	$: lang = $langStore;
 	let search = '';
+	let searchedTerm = '';
 	let detail = null;
 	let servings = 4;
 	let showForm = false;
+	let savedOnly = false;
+	let saved = {};
+	let searchTimer;
+	let loadSeq = 0;
+	let busy = false;
 
-	let form = {
-		name_ar: '',
-		name_en: '',
-		description: '',
-		meal_types: ['lunch'],
-		difficulty: 'easy',
-		prep_minutes: 15,
-		cook_minutes: 30,
-		default_servings: 4,
-		ingredients: [{ product_name: '', quantity: 1, unit: 'kg' }],
-		steps: [{ text_ar: '' }]
-	};
+	const SAVED_KEY = 'belhana.savedRecipes';
 
-	async function load() {
-		loading = true;
-		try {
-			recipes = await api.get('/api/recipes?limit=100');
-		} catch (e) {
-			err = e.message;
-		}
-		loading = false;
+	function emptyForm() {
+		return {
+			name_ar: '',
+			name_en: '',
+			description: '',
+			meal_types: ['lunch'],
+			difficulty: 'easy',
+			prep_minutes: 15,
+			cook_minutes: 30,
+			default_servings: 4,
+			ingredients: [{ product_name: '', quantity: 1, unit: 'kg' }],
+			steps: [{ text_ar: '' }]
+		};
 	}
 
-	onMount(load);
+	let form = emptyForm();
+
+	// Ask the server to search names, descriptions, ingredient names and tags.
+	// The sequence number drops responses that arrive after a newer search.
+	async function load(term = '') {
+		const seq = ++loadSeq;
+		const q = term.trim();
+		if (q) searching = true;
+		else loading = true;
+		err = '';
+		try {
+			const data = await api.get(
+				`/api/recipes?limit=200${q ? `&search=${encodeURIComponent(q)}` : ''}`
+			);
+			if (seq !== loadSeq) return;
+			recipes = data;
+			searchedTerm = q;
+		} catch (e) {
+			if (seq === loadSeq) err = e.message;
+		}
+		if (seq !== loadSeq) return;
+		loading = false;
+		searching = false;
+	}
+
+	function loadSaved() {
+		try {
+			const raw = window.localStorage.getItem(SAVED_KEY);
+			saved = (raw && JSON.parse(raw)) || {};
+		} catch {
+			saved = {};
+		}
+	}
+
+	function toggleSaved(r) {
+		const next = { ...saved };
+		if (next[r.id]) {
+			delete next[r.id];
+		} else {
+			next[r.id] = {
+				id: r.id,
+				name_ar: r.name_ar,
+				name_en: r.name_en,
+				saved_at: Date.now()
+			};
+		}
+		saved = next;
+		try {
+			window.localStorage.setItem(SAVED_KEY, JSON.stringify(next));
+		} catch {
+			/* storage unavailable */
+		}
+	}
+
+	function onSearchInput(value) {
+		search = value;
+		clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => load(search), 300);
+	}
+
+	function submitSearch() {
+		clearTimeout(searchTimer);
+		load(search);
+	}
+
+	function searchWeb() {
+		const q = searchedTerm || search.trim();
+		const suffix = lang === 'ar' ? 'طريقة عمل' : 'recipe';
+		const url = `https://www.google.com/search?q=${encodeURIComponent(`${q} ${suffix}`)}`;
+		window.open(url, '_blank', 'noopener');
+	}
+
+	function addMissing() {
+		const name = searchedTerm || search.trim();
+		form = emptyForm();
+		form.name_ar = name;
+		showForm = true;
+	}
+
+	function toggleSavedOnly() {
+		savedOnly = !savedOnly;
+		// Saved-only should show every saved meal, not just the current query.
+		if (savedOnly && searchedTerm) {
+			clearTimeout(searchTimer);
+			search = '';
+			load('');
+		}
+	}
+
+	onMount(() => {
+		loadSaved();
+		load();
+		return () => clearTimeout(searchTimer);
+	});
 
 	async function open(r) {
 		try {
@@ -77,19 +171,8 @@
 			};
 			await api.post('/api/recipes', body);
 			showForm = false;
-			form = {
-				name_ar: '',
-				name_en: '',
-				description: '',
-				meal_types: ['lunch'],
-				difficulty: 'easy',
-				prep_minutes: 15,
-				cook_minutes: 30,
-				default_servings: 4,
-				ingredients: [{ product_name: '', quantity: 1, unit: 'kg' }],
-				steps: [{ text_ar: '' }]
-			};
-			await load();
+			form = emptyForm();
+			await load(search);
 		} catch (e) {
 			err = e.message;
 		}
@@ -101,17 +184,14 @@
 		try {
 			await api.del(`/api/recipes/${r.id}`);
 			if (detail?.recipe.id === r.id) detail = null;
-			await load();
+			await load(search);
 		} catch (e) {
 			err = e.message;
 		}
 	}
 
-	$: filtered = search
-		? recipes.filter((r) => r.name_ar.includes(search) || (r.name_en ?? '').toLowerCase().includes(search.toLowerCase()))
-		: recipes;
-
-	let busy = false;
+	$: visible = savedOnly ? recipes.filter((r) => saved[r.id]) : recipes;
+	$: savedCount = Object.keys(saved).length;
 </script>
 
 <div class="page">
@@ -178,21 +258,87 @@
 		</div>
 	{/if}
 
-	<input placeholder="🔍 {t('search')}…" bind:value={search} style="margin-bottom:.8rem" />
+	<div class="card" style="margin-bottom:.8rem">
+		<label style="margin-top:0">{t('searchMeals')}</label>
+		<div style="display:flex; gap:.5rem">
+			<input
+				value={search}
+				oninput={(e) => onSearchInput(e.currentTarget.value)}
+				onkeydown={(e) => e.key === 'Enter' && submitSearch()}
+				placeholder="🔍 {t('searchMeals')}"
+				style="margin:0"
+			/>
+			<button class="btn small" onclick={submitSearch} aria-label={t('search')}>🔍</button>
+		</div>
+		<div class="row" style="margin-top:.5rem; align-items:flex-start">
+			<p class="muted" style="margin:0">{t('searchHint')}</p>
+			<button class="btn small {savedOnly ? '' : 'secondary'}" onclick={toggleSavedOnly}>
+				⭐ {savedOnly ? t('allRecipes') : `${t('savedOnly')} (${savedCount})`}
+			</button>
+		</div>
+	</div>
 
 	{#if loading}
 		<p class="muted">{t('loading')}</p>
+	{:else if searching}
+		<p class="muted">⏳ {t('searching')}</p>
 	{:else}
+		{#if searchedTerm && !savedOnly}
+			<p class="muted">{recipes.length} {t('resultsCount')}</p>
+		{/if}
+
 		<div class="grid2">
-			{#each filtered as r}
-				<button class="stat" style="cursor:pointer; text-align:{lang === 'ar' ? 'right' : 'left'}" onclick={() => open(r)}>
+			{#each visible as r}
+				<div
+					class="stat meal-card"
+					role="button"
+					tabindex="0"
+					onclick={() => open(r)}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							open(r);
+						}
+					}}
+					style="cursor:pointer; text-align:{lang === 'ar' ? 'right' : 'left'}"
+				>
+					<button
+						class="star-btn"
+						aria-pressed={Boolean(saved[r.id])}
+						title={saved[r.id] ? t('removeSaved') : t('saveLocally')}
+						aria-label={saved[r.id] ? t('removeSaved') : t('saveLocally')}
+						onclick={(e) => {
+							e.stopPropagation();
+							toggleSaved(r);
+						}}
+						onkeydown={(e) => e.stopPropagation()}
+					>
+						{saved[r.id] ? '★' : '☆'}
+					</button>
 					<div class="v" style="font-size:.95rem">{r.name_ar}</div>
 					<div class="k">{r.meal_types.map((m) => t(m)).join(' · ')}</div>
 					<div class="k">{r.difficulty} · {r.prep_minutes + r.cook_minutes}{lang === 'ar' ? ' د' : 'm'}</div>
-				</button>
+				</div>
 			{/each}
 		</div>
-		{#if filtered.length === 0}<p class="muted">{t('empty')}</p>{/if}
+
+		{#if visible.length === 0}
+			{#if searchedTerm && !savedOnly}
+				<div class="card" style="text-align:center; margin-top:.8rem">
+					<div style="font-size:2rem">🍽️</div>
+					<h3 style="margin:.3rem 0">{t('mealNotFound')}</h3>
+					<p class="muted">«{searchedTerm}»</p>
+					<p class="muted">{t('mealNotFoundHint')}</p>
+					<div style="display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap">
+						<button class="btn secondary" onclick={searchWeb}>🌐 {t('searchWeb')}</button>
+						<button class="btn" onclick={addMissing}>+ {t('addMissing')}</button>
+					</div>
+					<p class="muted" style="margin-top:.5rem">{t('addMissingHint')}</p>
+				</div>
+			{:else}
+				<p class="muted">{savedOnly ? t('noSaved') : t('empty')}</p>
+			{/if}
+		{/if}
 	{/if}
 
 	{#if detail}
@@ -200,7 +346,17 @@
 			<div class="modal">
 				<div class="row">
 					<h2>{detail.recipe.name_ar}</h2>
-					<button class="btn secondary small" onclick={() => (detail = null)}>×</button>
+					<div style="display:flex; gap:.4rem">
+						<button
+							class="btn secondary small"
+							aria-pressed={Boolean(saved[detail.recipe.id])}
+							title={saved[detail.recipe.id] ? t('removeSaved') : t('saveLocally')}
+							onclick={() => toggleSaved(detail.recipe)}
+						>
+							{saved[detail.recipe.id] ? '★' : '☆'}
+						</button>
+						<button class="btn secondary small" onclick={() => (detail = null)}>×</button>
+					</div>
 				</div>
 				{#if detail.recipe.description}<p class="muted">{detail.recipe.description}</p>{/if}
 
@@ -222,7 +378,7 @@
 				<h3>{t('ingredients')}</h3>
 				<ul>
 					{#each detail.ingredients as ing}
-						<li>{ing.raw_name_ar ?? ing.product_id} — {ing.quantity} {ing.unit}{ing.optional ? ' (' + t('optional') + ')' : ''}</li>
+						<li>{ing.raw_name_ar ?? ing.product_id} — {formatQty(ing.quantity, ing.unit)}{ing.optional ? ' (' + t('optional') + ')' : ''}</li>
 					{/each}
 				</ul>
 
@@ -240,3 +396,29 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.meal-card {
+		position: relative;
+		padding-top: 1.7rem;
+	}
+
+	.star-btn {
+		position: absolute;
+		top: 0.35rem;
+		inset-inline-end: 0.35rem;
+		width: 1.9rem;
+		height: 1.9rem;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--primary-dark);
+		font-size: 1rem;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.star-btn[aria-pressed='true'] {
+		background: var(--primary-soft);
+	}
+</style>

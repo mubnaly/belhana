@@ -164,8 +164,17 @@ pub async fn list_recipes(
     if meal_type.is_some() {
         sql.push_str(" AND meal_types LIKE ?");
     }
-    if search.is_some() {
-        sql.push_str(" AND (name_ar LIKE ? OR name_en LIKE ?)");
+    // Search across both names, the description, ingredient raw names and tags
+    // so a user can find a meal by what is in it, not only by its title.
+    let needle = search.map(str::trim).filter(|s| !s.is_empty());
+    if needle.is_some() {
+        sql.push_str(
+            " AND (name_ar LIKE ? OR name_en LIKE ? OR COALESCE(description, '') LIKE ? \
+             OR EXISTS (SELECT 1 FROM recipe_ingredients ri WHERE ri.recipe_id = recipes.id \
+             AND (ri.raw_name_ar LIKE ? OR ri.raw_name_en LIKE ?)) \
+             OR EXISTS (SELECT 1 FROM recipe_tags rt WHERE rt.recipe_id = recipes.id \
+             AND rt.tag LIKE ?))",
+        );
     }
     sql.push_str(" ORDER BY is_system DESC, name_ar LIMIT ? OFFSET ?");
     let mut q = sqlx::query(&sql);
@@ -173,9 +182,11 @@ pub async fn list_recipes(
     if let Some(mt) = meal_type {
         q = q.bind(format!("%\"{mt}\"%"));
     }
-    if let Some(s) = search {
+    if let Some(s) = needle {
         let like = format!("%{s}%");
-        q = q.bind(like.clone()).bind(like);
+        for _ in 0..6 {
+            q = q.bind(like.clone());
+        }
     }
     let rows = q.bind(limit).bind(offset).fetch_all(pool).await.map_err(map_db)?;
     let mut out: Vec<Recipe> = rows.into_iter().map(Recipe::from).collect();

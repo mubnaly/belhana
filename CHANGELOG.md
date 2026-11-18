@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.2 — 2026-11-18 (meal search, local saving & gram display)
+
+### Added
+- Server-side recipe search now matches Arabic and English names, the description, ingredient raw
+  names, and tags. Empty or whitespace-only queries are ignored instead of filtering everything out.
+  The recipes screen debounces typing, drops stale responses, and shows a result count.
+- A “not found” card appears when a search has no matches. It offers an external Google search for the
+  dish and opens the new-recipe form prefilled with the searched name, so the meal can be added and
+  saved locally through the existing API.
+- Local meal bookmarks: the star on a recipe card or in its detail modal stores the meal in
+  `localStorage` (`belhana.savedRecipes`). A “saved only” filter shows bookmarked meals and survives
+  reloads without server changes.
+- `formatQty(value, unit)` in the web API client shows weights below 1 kg in grams
+  (`0.5 kg` → `500 g`) and trims floating-point noise everywhere quantities are displayed. Stored
+  values and form inputs are unchanged. Applied to recipes, shopping, inventory, dashboard expiring
+  stock, plan inventory usage and batch-cooking guides.
+
+### Verified
+- Recipe search by name (`كشري` → 1 result), by ingredient (`طماطم` → 16 results), and by a nonsense
+  query (0 results); the unfiltered list still returns 34 recipes.
+- `cargo test --workspace` passes 23 tests; the Svelte production build succeeds.
+
 ## 0.2.1 — 2026-11-18 (recipe methods & famous Egyptian dishes)
 
 ### Added

@@ -148,6 +148,23 @@ export function money(minor) {
 	return `${egp.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م`;
 }
 
+// Quantities come back from SQLite REAL arithmetic (e.g. 1.5999999999999999 kg).
+// Trim floating-point noise for display without changing the stored value, and
+// show weights below one kilogram in grams (0.5 kg → "500 g") because grams are
+// easier to weigh and read for small amounts.
+export function formatQty(value, unit) {
+	if (value == null || value === '') return '';
+	const n = Number(value);
+	if (Number.isNaN(n)) return '';
+	let amount = Math.round(n * 1000) / 1000;
+	let u = unit ?? '';
+	if (u === 'kg' && amount > 0 && amount < 1) {
+		amount = Math.round(amount * 1000 * 1000) / 1000;
+		u = 'g';
+	}
+	return `${amount} ${u}`.trim();
+}
+
 export function todayStr() {
 	const d = new Date();
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

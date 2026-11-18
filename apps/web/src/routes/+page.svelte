@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { getLang, t, toggleLang, langStore } from '$lib/i18n.js';
-	import { isAuthed, getAuth, api, logout } from '$lib/api.js';
+	import { isAuthed, getAuth, api, logout, formatQty } from '$lib/api.js';
 
 	let lang = getLang();
 	$: lang = $langStore;
@@ -109,7 +109,7 @@
 			<div class="card">
 				{#each data.expiring_stock as lot}
 					<div class="row" style="padding:.3rem 0">
-						<span>{lot.product_name_ar} — {lot.quantity} {lot.unit}</span>
+						<span>{lot.product_name_ar} — {formatQty(lot.quantity, lot.unit)}</span>
 						<span class="chip warn">{lot.expiry_date}</span>
 					</div>
 				{/each}

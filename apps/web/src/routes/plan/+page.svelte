@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { api, money } from '$lib/api.js';
+	import { api, money, formatQty } from '$lib/api.js';
 	import { t, getLang, langStore } from '$lib/i18n.js';
 
 	let plans = [];
@@ -155,7 +155,7 @@
 					<p class="muted" style="margin:.3rem 0 0">{slot.explanation}</p>
 					{#if slot.inventory_used.length > 0}
 						<p class="muted" style="margin:.2rem 0 0">
-							📦 {slot.inventory_used.map((u) => `${u.name_ar} ${u.quantity}${u.unit}`).join('، ')}
+							📦 {slot.inventory_used.map((u) => `${u.name_ar} ${formatQty(u.quantity, u.unit)}`).join('، ')}
 						</p>
 					{/if}
 				</details>

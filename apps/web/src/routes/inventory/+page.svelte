@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { api, money } from '$lib/api.js';
+	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 
 	let lots = [];
@@ -177,7 +177,7 @@
 			<h3>⚠ {t('expiring')}</h3>
 			{#each expiring as lot}
 				<div class="card row" style="padding:.7rem">
-					<span>{lot.product_name_ar} · {lot.quantity} {lot.unit}</span>
+					<span>{lot.product_name_ar} · {formatQty(lot.quantity, lot.unit)}</span>
 					<span class="chip warn">{lot.expiry_date}</span>
 				</div>
 			{/each}
@@ -190,7 +190,7 @@
 		{#each leftovers as lot}
 			<div class="card row" style="padding:.7rem">
 				<span>
-					<b>{lot.product_name_ar}</b> · {lot.quantity} {lot.unit}
+					<b>{lot.product_name_ar}</b> · {formatQty(lot.quantity, lot.unit)}
 					<span class="chip ok">{t('useFirst')}</span>
 				</span>
 				<button class="btn secondary small" onclick={() => toggleCarry(lot)}>{t('stopCarryOver')}</button>
@@ -214,7 +214,7 @@
 			<div class="row">
 				<span>
 					<b>{lot.product_name_ar}</b>
-					<span class="muted">· {lot.quantity} {lot.unit}{lot.location_name ? ' · ' + lot.location_name : ''}</span>
+					<span class="muted">· {formatQty(lot.quantity, lot.unit)}{lot.location_name ? ' · ' + lot.location_name : ''}</span>
 					{#if lot.carry_over}<span class="chip ok">{t('carryOver')}</span>{/if}<br />
 					{#if lot.expiry_date}<span class="muted">{t('expiryDate')}: {lot.expiry_date}</span>{/if}
 					{#if lot.estimated_cost_minor}<span class="muted"> · {money(lot.estimated_cost_minor)}</span>{/if}

@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api.js';
+	import { api, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 
 	let guides = [];
@@ -71,7 +71,7 @@
 					<summary class="muted" style="cursor:pointer">{lang === 'ar' ? 'التفاصيل' : 'Details'}</summary>
 					<h3 style="margin-top:.5rem">{t('ingredients')}</h3>
 					<ul>
-						{#each g.ingredients ?? [] as ing}<li>{ing.name_ar} — {ing.quantity} {ing.unit}</li>{/each}
+						{#each g.ingredients ?? [] as ing}<li>{ing.name_ar} — {formatQty(ing.quantity, ing.unit)}</li>{/each}
 					</ul>
 					<h3>{t('steps')}</h3>
 					<ol>

@@ -1,6 +1,6 @@
 # Implementation status
 
-Last updated: 2026-11-17. This file reports the code that exists and the checks that were run;
+Last updated: 2026-11-18. This file reports the code that exists and the checks that were run;
 it deliberately does not claim unverified integrations.
 
 ## Build state
@@ -43,6 +43,21 @@ it deliberately does not claim unverified integrations.
     per-unit cheapest-price comparison that never mixes units.
 20. ✅ Leftover carry-over lots (default on, FEFO-first use) and a filterable meal-tips page.
 21. ✅ Fixed-spend shopping lines (e.g. 20 EGP of salt) that record expense but create no fake stock lot.
+22. ✅ Meal search across names, ingredients and tags, with web-search/add-it-yourself fallback for
+    missing dishes, local star bookmarks plus a saved-only filter, and sub-kilogram weights shown in grams.
+
+## Meal search and local saving (2026-11-18)
+
+`GET /api/recipes?search=` now searches both recipe names, the description, ingredient raw names
+(`recipe_ingredients.raw_name_ar/en`) and tags, and ignores blank queries. The `/recipes` screen
+debounces requests, discards out-of-order responses, and falls back when nothing matches: it can open
+a Google search for the dish or prefill the new-recipe form so the meal is created locally. Any recipe
+can be starred; bookmarks live in `localStorage` under `belhana.savedRecipes`, and a saved-only filter
+lists them after a reload. `formatQty` renders weights under 1 kg in grams and removes floating-point
+noise on recipes, shopping, inventory, dashboard, plan and batch-cooking screens.
+
+Verified against the seeded API: `كشري` → 1 result, `طماطم` (an ingredient) → 16, nonsense → 0, empty
+query → 34. `cargo test --workspace` passes 23 tests and the Svelte production build succeeds.
 
 ## Recipe content expansion (2026-11-18)
 

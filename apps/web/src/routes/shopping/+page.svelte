@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { api, money } from '$lib/api.js';
+	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 
 	let list = null;
@@ -110,7 +110,7 @@
 								{#if item.buy_by_amount_minor}
 									<span class="chip">{t('buyByAmount')}</span> ~{moneyf(item.buy_by_amount_minor)}
 								{:else}
-									{qty(item.shopping_qty)} {item.shopping_unit}
+									{formatQty(item.shopping_qty, item.shopping_unit)}
 								{/if}
 								{#if item.estimated_total_minor != null} · ~{moneyf(item.estimated_total_minor)}{/if}
 								{#if item.price_freshness === 'stale'}<span class="chip warn">{t('stale')}</span>{/if}
