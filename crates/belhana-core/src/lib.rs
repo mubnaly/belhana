@@ -6,6 +6,7 @@ pub mod budget;
 pub mod catalog;
 pub mod costing;
 pub mod dashboard;
+pub mod guidance;
 pub mod households;
 pub mod import_parse;
 pub mod imports;

@@ -4,6 +4,7 @@
 	import { getLang, t, toggleLang, langStore } from '$lib/i18n.js';
 	import { isAuthed, getAuth, api, logout, formatQty } from '$lib/api.js';
 	import { kcalText } from '$lib/format.js';
+	import MacroFacts from '$lib/MacroFacts.svelte';
 	import Icon from '$lib/Icon.svelte';
 
 	let lang = getLang();
@@ -124,6 +125,7 @@
 									<span>{course.main.name_ar}</span>
 								{/if}
 								<span class="kcal estimate">{kcalText(course.main.kcal_per_serving, lang)}</span>
+								<MacroFacts macros={course.main.macros_per_serving} {lang} />
 							</div>
 						{/if}
 						{#each course.sides as side}
@@ -135,6 +137,7 @@
 									<span>{side.name_ar}</span>
 								{/if}
 								<span class="kcal estimate">{kcalText(side.kcal_per_serving, lang)}</span>
+								<MacroFacts macros={side.macros_per_serving} {lang} />
 							</div>
 						{/each}
 					</section>
@@ -157,6 +160,7 @@
 							<span class="basic-icon"><Icon name={roleIcon(b.role, b.name_ar)} size={22} /></span>
 							<span class="basic-name">{b.name_ar}</span>
 							<span class="kcal estimate">{kcalText(b.kcal_per_serving, lang)}</span>
+							<MacroFacts macros={b.macros_per_serving} {lang} />
 						</a>
 					{/each}
 				</div>
@@ -198,6 +202,7 @@
 						<span>
 							{lot.product_name_ar} — {formatQty(lot.quantity, lot.unit)}
 							{#if lot.estimated_kcal}<br /><span class="kcal estimate">{kcalText(lot.estimated_kcal, lang)}</span>{/if}
+							<MacroFacts macros={lot.estimated_macros} {lang} />
 						</span>
 						<span class="chip warn">{lot.expiry_date}</span>
 					</div>

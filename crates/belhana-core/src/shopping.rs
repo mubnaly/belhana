@@ -49,6 +49,8 @@ pub struct ShoppingItem {
     pub notes: Option<String>,
     /// Estimated calories for the proposed shopping quantity.
     pub estimated_kcal: Option<i64>,
+    /// Estimated macros for the same quantity.
+    pub estimated_macros: Option<nutrition::MacroEstimate>,
 }
 
 impl From<sqlx::sqlite::SqliteRow> for ShoppingItem {
@@ -65,6 +67,7 @@ impl From<sqlx::sqlite::SqliteRow> for ShoppingItem {
             (required_qty, required_unit.as_str())
         };
         let estimated_kcal = nutrition::kcal_from_row(&r, kcal_qty, kcal_unit);
+        let estimated_macros = nutrition::macro_from_row(&r, kcal_qty, kcal_unit);
         ShoppingItem {
             id: r.get("id"),
             product_id: r.get("product_id"),
@@ -88,6 +91,7 @@ impl From<sqlx::sqlite::SqliteRow> for ShoppingItem {
             status: r.get("status"),
             notes: r.get("notes"),
             estimated_kcal,
+            estimated_macros,
         }
     }
 }
@@ -273,7 +277,8 @@ pub async fn get_list(pool: &SqlitePool, household_id: &str, id: &str) -> Result
         .ok_or_else(|| CommonError::NotFound("shopping list".into()))?;
     let mut list = list_from_row(row);
     let items = sqlx::query(
-        "SELECT i.*, p.name_ar AS product_name_ar, p.kcal_per_100g, p.grams_per_unit,
+        "SELECT i.*, p.name_ar AS product_name_ar, p.kcal_per_100g, p.protein_per_100g,
+                p.carbs_per_100g, p.fat_per_100g, p.fiber_per_100g, p.grams_per_unit,
                 p.default_unit
          FROM shopping_list_items i
          JOIN products p ON p.id = i.product_id

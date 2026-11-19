@@ -30,6 +30,8 @@ pub struct Recipe {
     pub tags: Vec<String>,
     /// Estimated calories for one serving (editorial catalog estimate).
     pub kcal_per_serving: Option<i64>,
+    /// Estimated macros for one serving.
+    pub macros_per_serving: Option<crate::nutrition::MacroEstimate>,
 }
 
 fn parse_json_array(s: Option<&String>) -> Vec<String> {
@@ -61,6 +63,7 @@ impl From<sqlx::sqlite::SqliteRow> for Recipe {
             is_system: r.get::<i64, _>("is_system") != 0,
             tags: Vec::new(),
             kcal_per_serving: None,
+            macros_per_serving: None,
         }
     }
 }
@@ -78,6 +81,8 @@ pub struct RecipeIngredient {
     pub note: Option<String>,
     /// Estimated calories for this listed quantity, when known.
     pub kcal: Option<i64>,
+    /// Estimated macros for this listed quantity.
+    pub macros: Option<crate::nutrition::MacroEstimate>,
 }
 
 impl From<sqlx::sqlite::SqliteRow> for RecipeIngredient {
@@ -93,6 +98,7 @@ impl From<sqlx::sqlite::SqliteRow> for RecipeIngredient {
             optional: r.get::<i64, _>("optional") != 0,
             note: r.get("note"),
             kcal: None,
+            macros: None,
         }
     }
 }
@@ -198,8 +204,10 @@ pub async fn list_recipes(
     let mut out: Vec<Recipe> = rows.into_iter().map(Recipe::from).collect();
     attach_tags(pool, &mut out).await?;
     let mut kcal = crate::nutrition::recipe_kcal_map(pool).await?;
+    let mut macros = crate::nutrition::recipe_macro_map(pool).await?;
     for r in &mut out {
         r.kcal_per_serving = kcal.remove(&r.id);
+        r.macros_per_serving = macros.remove(&r.id);
     }
     Ok(out)
 }
@@ -231,8 +239,12 @@ pub async fn get_recipe(pool: &SqlitePool, id: &str) -> Result<(Recipe, Vec<Reci
         .await?
         .get(&recipe.id)
         .copied();
+    recipe.macros_per_serving = crate::nutrition::recipe_macro_map(pool)
+        .await?
+        .remove(&recipe.id);
     let ing_rows = sqlx::query(
-        "SELECT ri.*, p.kcal_per_100g, p.grams_per_unit, p.default_unit, p.package_size, p.package_unit
+        "SELECT ri.*, p.kcal_per_100g, p.protein_per_100g, p.carbs_per_100g, p.fat_per_100g,
+                p.fiber_per_100g, p.grams_per_unit, p.default_unit, p.package_size, p.package_unit
          FROM recipe_ingredients ri
          LEFT JOIN products p ON p.id = ri.product_id
          WHERE ri.recipe_id = ? ORDER BY ri.sort",
@@ -246,8 +258,10 @@ pub async fn get_recipe(pool: &SqlitePool, id: &str) -> Result<(Recipe, Vec<Reci
         let quantity: f64 = row.get("quantity");
         let unit: String = row.get("unit");
         let kcal = crate::nutrition::kcal_from_row(&row, quantity, &unit);
+        let macros = crate::nutrition::macro_from_row(&row, quantity, &unit);
         let mut ing = RecipeIngredient::from(row);
         ing.kcal = kcal;
+        ing.macros = macros;
         ingredients.push(ing);
     }
     let steps = sqlx::query("SELECT * FROM recipe_steps WHERE recipe_id = ? ORDER BY step_number")

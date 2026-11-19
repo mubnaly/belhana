@@ -3,6 +3,7 @@
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import { kcalText, qty } from '$lib/format.js';
+	import MacroFacts from '$lib/MacroFacts.svelte';
 	import Icon from '$lib/Icon.svelte';
 
 	let list = null;
@@ -109,6 +110,7 @@
 								{/if}
 								{#if item.estimated_total_minor != null} · ~{moneyf(item.estimated_total_minor)}{/if}
 								{#if item.estimated_kcal}<br /><span class="kcal estimate">{kcalText(item.estimated_kcal, lang)}</span>{/if}
+								<MacroFacts macros={item.estimated_macros} {lang} />
 								{#if item.price_freshness === 'stale'}<span class="chip warn">{t('stale')}</span>{/if}
 							</span>
 						</span>

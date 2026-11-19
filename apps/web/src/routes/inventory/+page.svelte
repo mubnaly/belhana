@@ -3,6 +3,7 @@
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import { kcalText } from '$lib/format.js';
+	import MacroFacts from '$lib/MacroFacts.svelte';
 	import Icon from '$lib/Icon.svelte';
 
 	let lots = [];
@@ -182,6 +183,7 @@
 					<span>
 						{lot.product_name_ar} · {formatQty(lot.quantity, lot.unit)}
 						{#if lot.estimated_kcal}<br /><span class="kcal estimate">{kcalText(lot.estimated_kcal, lang)}</span>{/if}
+					<MacroFacts macros={lot.estimated_macros} {lang} />
 					</span>
 					<span class="chip warn">{lot.expiry_date}</span>
 				</div>
@@ -198,6 +200,7 @@
 					<b>{lot.product_name_ar}</b> · {formatQty(lot.quantity, lot.unit)}
 					<span class="chip ok"><Icon name="check" size={13} /> {t('useFirst')}</span>
 					{#if lot.estimated_kcal}<br /><span class="kcal estimate">{kcalText(lot.estimated_kcal, lang)}</span>{/if}
+					<MacroFacts macros={lot.estimated_macros} {lang} />
 				</span>
 				<button class="btn secondary small" onclick={() => toggleCarry(lot)}>{t('stopCarryOver')}</button>
 			</div>
@@ -225,6 +228,7 @@
 					{#if lot.expiry_date}<span class="muted">{t('expiryDate')}: {lot.expiry_date}</span>{/if}
 					{#if lot.estimated_cost_minor}<span class="muted"> · {money(lot.estimated_cost_minor)}</span>{/if}
 					{#if lot.estimated_kcal}<br /><span class="kcal estimate">{kcalText(lot.estimated_kcal, lang)}</span>{/if}
+					<MacroFacts macros={lot.estimated_macros} {lang} />
 				</span>
 				<span style="display:flex; gap:.3rem">
 					<button class="btn secondary small" onclick={() => consume(lot)}>{t('consume')}</button>

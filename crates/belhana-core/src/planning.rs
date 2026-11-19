@@ -59,6 +59,8 @@ pub struct PlannedMealOut {
     pub locked: bool,
     /// Estimated calories for one serving of the chosen recipe.
     pub kcal_per_serving: Option<i64>,
+    /// Estimated macros for one serving of the chosen recipe.
+    pub macros_per_serving: Option<crate::nutrition::MacroEstimate>,
 }
 
 #[derive(Debug, Serialize)]
@@ -480,6 +482,7 @@ pub async fn generate_plan_in_memory(
                 explanation,
                 locked: locked_for_slot.is_some(),
                 kcal_per_serving: cand.recipe.kcal_per_serving,
+                macros_per_serving: cand.recipe.macros_per_serving.clone(),
             });
         }
         days_cost.push((date_s, day_total));
@@ -786,6 +789,7 @@ pub async fn read_plan(pool: &SqlitePool, plan_id: &str) -> Result<PlanOutput, C
     .await
     .map_err(map_db)?;
     let kcal_map = crate::nutrition::recipe_kcal_map(pool).await?;
+    let macro_map = crate::nutrition::recipe_macro_map(pool).await?;
     let mut slots = Vec::new();
     for (i, r) in rows.into_iter().enumerate() {
         slots.push(PlannedMealOut {
@@ -809,6 +813,7 @@ pub async fn read_plan(pool: &SqlitePool, plan_id: &str) -> Result<PlanOutput, C
             explanation: r.get::<Option<String>, _>("explanation").unwrap_or_default(),
             locked: r.get::<i64, _>("locked") != 0,
             kcal_per_serving: kcal_map.get(&r.get::<String, _>("recipe_id")).copied(),
+            macros_per_serving: macro_map.get(&r.get::<String, _>("recipe_id")).cloned(),
         });
     }
     let total: i64 = slots.iter().map(|s| s.cost_minor).sum();

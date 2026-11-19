@@ -3,7 +3,6 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { getLang, t, onLang, setLang, langStore } from '$lib/i18n.js';
-	import { themeStore, toggleTheme, getTheme } from '$lib/theme.js';
 	import { loadAuth, isAuthed } from '$lib/api.js';
 	import Icon from '$lib/Icon.svelte';
 	import '../app.css';
@@ -15,7 +14,6 @@
 	if (browser) loadAuth();
 
 	let lang = $state(getLang());
-	let theme = $state(getTheme());
 	let authed = $state(isAuthed());
 
 	// Navigation (login/logout/goto) re-evaluates auth without a full reload.
@@ -26,11 +24,7 @@
 
 	onMount(() => {
 		setLang(getLang());
-		onLang((l) => (lang = l));
-		const unsubscribe = themeStore.subscribe((value) => (theme = value));
-		return () => {
-			unsubscribe();
-		};
+		return onLang((l) => (lang = l));
 	});
 
 	// Pass `lang` so Svelte tracks the label as language-dependent; `t` itself
@@ -56,15 +50,6 @@
 {#key lang}
 	{@render children()}
 {/key}
-
-<button
-	class="theme-toggle"
-	onclick={toggleTheme}
-	aria-label={t('theme')}
-	title={`${t('theme')}: ${theme === 'dark' ? t('themeDark') : t('themeLight')}`}
->
-	<Icon name={theme === 'dark' ? 'sun' : 'moon'} size={20} />
-</button>
 
 {#if authed}
 	<nav class="bottomnav" dir={lang === 'ar' ? 'rtl' : 'ltr'}>

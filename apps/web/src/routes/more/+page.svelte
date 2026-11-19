@@ -12,6 +12,8 @@
 		{ href: '/more/rules', icon: 'ruler', key: 'rules' },
 		{ href: '/more/occasions', icon: 'sparkles', key: 'occasions' },
 		{ href: '/more/cooking', icon: 'pot', key: 'cooking' },
+		{ href: '/more/diets', icon: 'diet', key: 'diets' },
+		{ href: '/more/athletes', icon: 'activity', key: 'athletes' },
 		{ href: '/more/tips', icon: 'bulb', key: 'tips' },
 		{ href: '/more/assistant', icon: 'robot', key: 'assistant' },
 		{ href: '/more/imports', icon: 'inbox', key: 'imports' },

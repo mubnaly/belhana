@@ -54,6 +54,7 @@ async fn seed_products(pool: &SqlitePool) -> Result<(), belhana_common::CommonEr
         .collect();
     for p in seed_data::PRODUCTS {
         let (kcal, grams) = seed_data::product_nutrition(p.category, p.name_ar, p.default_unit);
+        let (protein, carbs, fat, fiber) = seed_data::product_macros(p.name_ar, p.category);
         let product_id = if let Some(existing) = catalog::find_by_arabic_name(pool, p.name_ar).await? {
             existing.id
         } else {
@@ -84,10 +85,18 @@ async fn seed_products(pool: &SqlitePool) -> Result<(), belhana_common::CommonEr
         };
         // Estimates are refreshed on every start so improved catalog values
         // reach existing databases without duplicating products.
-        sqlx::query("UPDATE products SET kcal_per_100g = ?, grams_per_unit = ? WHERE id = ?")
-            .bind(kcal)
-            .bind(grams)
-            .bind(product_id)
+        sqlx::query(
+            "UPDATE products SET kcal_per_100g = ?, grams_per_unit = ?,
+                    protein_per_100g = ?, carbs_per_100g = ?, fat_per_100g = ?, fiber_per_100g = ?
+             WHERE id = ?",
+        )
+        .bind(kcal)
+        .bind(grams)
+        .bind(protein)
+        .bind(carbs)
+        .bind(fat)
+        .bind(fiber)
+        .bind(product_id)
             .execute(pool)
             .await
             .map_err(belhana_core::map_db)?;

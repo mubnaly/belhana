@@ -475,6 +475,21 @@ button.chip {
 	white-space: nowrap;
 }
 
+.macro-facts {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	flex-wrap: wrap;
+	color: var(--muted);
+	font-size: 0.72rem;
+	line-height: 1.4;
+	margin-top: 0.15rem;
+}
+
+.macro-facts span {
+	white-space: nowrap;
+}
+
 /* --- Layout helpers ------------------------------------------------------ */
 
 .row {
@@ -536,39 +551,7 @@ button.chip {
 	transform: rotate(-1.6deg);
 }
 
-/* --- Theme toggle -------------------------------------------------------- */
-
-.theme-toggle {
-	position: fixed;
-	inset-inline-end: 0.9rem;
-	bottom: calc(4.4rem + env(safe-area-inset-bottom));
-	z-index: 25;
-	width: 2.5rem;
-	height: 2.5rem;
-	padding: 0;
-	border-radius: 999px;
-	background: var(--surface);
-	color: var(--text);
-	border: 2px solid var(--border-strong);
-	box-shadow: var(--shadow);
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	transition:
-		transform 0.15s ease,
-		background 0.15s ease;
-}
-
-.theme-toggle:hover {
-	background: var(--primary-soft);
-	transform: translateY(-2px) rotate(-6deg);
-}
-
-.theme-toggle:focus-visible {
-	outline: 3px solid var(--primary-soft);
-	outline-offset: 2px;
-}
+/* Theme is changed only from the Settings page; no floating control. */
 
 /* --- Bottom navigation --------------------------------------------------- */
 
@@ -658,6 +641,34 @@ button.chip {
 .stat .k {
 	font-size: 0.78rem;
 	color: var(--muted);
+}
+
+/* --- Guidance pages ------------------------------------------------------ */
+
+.athlete-form {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 0.6rem;
+	margin-top: 0.7rem;
+}
+
+.athlete-form label {
+	margin-bottom: 0.15rem;
+}
+
+.diet-cols {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 0.8rem;
+	margin: 0.6rem 0;
+}
+
+.diet-cols h4,
+.card h4 {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	margin: 0.4rem 0;
 }
 
 /* --- Progress ------------------------------------------------------------ */

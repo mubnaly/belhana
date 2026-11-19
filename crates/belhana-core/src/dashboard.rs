@@ -54,6 +54,8 @@ pub struct TodayDish {
     pub suggested: bool,
     /// Estimated calories for one serving.
     pub kcal_per_serving: Option<i64>,
+    /// Estimated macros for one serving.
+    pub macros_per_serving: Option<crate::nutrition::MacroEstimate>,
 }
 
 struct PlannedToday {
@@ -146,6 +148,7 @@ fn dish(r: &recipes::Recipe, role: &str, suggested: bool) -> TodayDish {
         role: role.to_string(),
         suggested,
         kcal_per_serving: r.kcal_per_serving,
+        macros_per_serving: r.macros_per_serving.clone(),
     }
 }
 
@@ -291,6 +294,12 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
             .find(|r| r.id == id)
             .and_then(|r| r.kcal_per_serving)
     };
+    let macros_for = |id: &str| {
+        all_recipes
+            .iter()
+            .find(|r| r.id == id)
+            .and_then(|r| r.macros_per_serving.clone())
+    };
     let mut today_table: Vec<TodayCourse> = Vec::new();
 
     // Breakfast: planned dish (or a suggested one) + bread + at least two adamas.
@@ -301,6 +310,7 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
         role: "dish".into(),
         suggested: false,
         kcal_per_serving: kcal_for(&p.recipe_id),
+        macros_per_serving: macros_for(&p.recipe_id),
     });
     if b_main.is_none() {
         b_main = pick_main(&all_recipes, "breakfast", rotate, &[]).map(|r| dish(r, "dish", true));
@@ -340,6 +350,7 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
         role: "dish".into(),
         suggested: false,
         kcal_per_serving: kcal_for(&p.recipe_id),
+        macros_per_serving: macros_for(&p.recipe_id),
     });
     if l_main.is_none() {
         l_main = pick_main(&all_recipes, "lunch", rotate, &[]).map(|r| dish(r, "dish", true));
@@ -381,6 +392,7 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
         role: "dish".into(),
         suggested: false,
         kcal_per_serving: kcal_for(&p.recipe_id),
+        macros_per_serving: macros_for(&p.recipe_id),
     });
     if d_main.is_none() {
         d_main = pick_main(&all_recipes, "dinner", rotate + 1, &[])

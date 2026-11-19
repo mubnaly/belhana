@@ -3,6 +3,7 @@
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, getLang, langStore, toggleLang } from '$lib/i18n.js';
 	import { kcalText } from '$lib/format.js';
+	import MacroFacts from '$lib/MacroFacts.svelte';
 	import Icon from '$lib/Icon.svelte';
 
 	let plans = [];
@@ -157,6 +158,7 @@
 						<h3 style="margin:.3rem 0 0">{slot.recipe_name_ar}</h3>
 						<p class="muted" style="margin:.2rem 0 0">{slot.servings} × {t('perServing')} · {money(slot.cost_minor)}</p>
 						<p class="muted" style="margin:.2rem 0 0"><span class="kcal estimate">{kcalText(slotKcal(slot), lang)}</span> · {t('kcal')}</p>
+						<MacroFacts macros={slot.macros_per_serving} {lang} />
 						{#if slot.missing.length > 0}
 							<p class="muted" style="margin:.2rem 0 0"><Icon name="cart" size={14} /> {slot.missing.length} {lang === 'ar' ? 'عناصر للمشتريات' : 'items to buy'}</p>
 						{/if}

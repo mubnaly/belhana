@@ -8,12 +8,12 @@ it deliberately does not claim unverified integrations.
 | Component | State | Evidence |
 | --- | --- | --- |
 | `belhana-common` | ✅ | 8 unit tests; money is integer piasters |
-| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (12 files, incl. `0011_guidance_and_purchasing`, `0012_product_nutrition`) |
+| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (13 files, incl. `0011_guidance_and_purchasing`, `0012_product_nutrition`, `0013_product_macros`) |
 | `belhana-auth` | ✅ | 2 tests; Argon2 + JWT access/refresh rotation |
-| `belhana-core` | ✅ | 13 tests; domains implemented against SQLite (incl. package-price tests) |
+| `belhana-core` | ✅ | 30 tests; domains implemented against SQLite (incl. package-price, macro, MET/BMR and guidance tests) |
 | `belhana-ai` | ✅ | provider abstraction, tool schemas, proposal guardrails; instruction rules in system prompt; no live API key tested |
-| `apps/api` | ✅ | ~85 route declarations in 17 modules; startup migrate + seed; healthz |
-| `apps/web` | ✅ | 16 Svelte screens (incl. meal tips), Arabic RTL/English, light/dark sticky-note themes, monochrome SVG icons, static build clean (no a11y warnings) + browser E2E pass |
+| `apps/api` | ✅ | 86 route declarations in 17 modules (incl. nutrition guide + athlete plan); startup migrate + seed; healthz |
+| `apps/web` | ✅ | 18 app screens (plus login/register), Arabic RTL/English, theme switch in Settings, light/dark sticky-note themes, monochrome SVG icons, static build clean (no a11y warnings) + browser E2E pass |
 | `apps/desktop` | 🟡 | Tauri 2 shell compiles (`cargo check`); WebView2 required to launch the Windows binary |
 | `workers/maintenance_worker` | ✅ | `--once` sweep ran clean (stale prices, expiry reminders, pruning) |
 
@@ -51,6 +51,37 @@ it deliberately does not claim unverified integrations.
 24. ✅ Estimated calories on every product/item and meal — recipes and their ingredients, plan slots,
     today's table, quick basics, shopping items and inventory/stock lots — computed from editorial
     per-product nutrition and always labelled as estimates (`≈` / `kcalEstimate`).
+25. ✅ Estimated protein/carbs/fat/fibre on recipes, plans and shopping; researched diet and athlete
+    guidance on two dedicated pages; MET burn and macro targets computed with clear estimate labels.
+
+## Macros, diet & athlete guidance, theme in Settings (2026-11-19)
+
+Research was recorded before coding in `docs/19-NUTRITION-AND-SPORT-EVIDENCE.md` with source URLs.
+Migration `0013_product_macros` adds editorial per-100 g protein, carbs, fat and fibre to `products`,
+refreshed idempotently by the seeder. `belhana_core::nutrition` derives macro estimates for recipes,
+plan slots, today's table, shopping items and stock lots; `belhana_core::guidance` holds bilingual
+micronutrient, diet, exercise, meal-timing and source content plus an athlete-plan calculator. All
+nutrition, burn and target numbers are prefixed with `≈` and called estimates; medical-supervision
+cautions remain on elimination diets and deficiency advice.
+
+`GET /api/nutrition-guide` and `POST /api/nutrition/athlete-plan` back two new `/more` pages:
+`/more/diets` (micronutrients, Mediterranean/elimination/balanced-family plans, sources) and
+`/more/athletes` (Mifflin–St Jeor BMR, activity/goal factors, ISSN-style protein target, MET burn,
+pre/post-workout timing and alternatives). The floating theme button was removed; the only colour
+control is now a Light/Dark card on `/more/settings`, keeping `belhana.theme` persistence and the
+early first-paint restore.
+
+Verified: `cargo check --workspace` and `cargo test --workspace` (30 tests) clean; `npm run build`
+clean. API smoke on a fresh DB: guide 200 (3 diets, 7 micronutrients, 10 exercises, 4 timing
+sections, 10 sources); athlete plan for 70 kg male 200 with `bmr=1649`, `tdee=2556`, `protein_g=98`,
+`carbs_g=335.4`, `fat_g=91.4`, `burn_kcal=245`, `met=3.5`; 70 kg examples corrected to ≈245 kcal/h
+brisk walking and ≈245–420 kcal/h lifting, not 300/900. Recipes, dashboard courses, plan slots
+(3/3) and shopping items (13/14 with a product match) all returned `estimated_macros`. Browser pass
+on all 18 screens in Arabic/English and light/dark: both `/more` tiles visible, 0 console errors,
+no emoji, no `.theme-toggle`, `currentColor` icons, no slot underlines (the two `dashed` elements are
+intentional `.notice` callout borders), athlete recalculation on 80 kg (`bmr=1749`, `burn=280`),
+diet tabs/accordions/sources, language toggles, and Settings theme switching with persistence.
+Responsive sticky-note rules remain in `app.css` (`@media (max-width: 560px)` and `min-width: 900px`).
 
 ## Estimated calories, light/dark notes & monochrome icons (2026-11-19)
 
@@ -65,8 +96,9 @@ The web now ships **two** matching cartoon “notes on the wall” themes — a 
 a charcoal/teal-plus-amber dark palette (not generic purple). Both keep the same sticky-note language:
 dotted wall, taped/tilted notes, ruled lines, sticker chips and offset shadows. Today's table is a
 responsive `auto-fit` grid of side-by-side note cards; all note cards reflow from phone to desktop, and
-plan slots no longer have dashed underlines. A floating bar toggle persists `belhana.theme` in
-`localStorage`, restored early in `app.html`. `Icon.svelte` provides single-color inline SVGs (all paths
+plan slots no longer have dashed underlines. The theme toggle persists `belhana.theme` in
+`localStorage`, restored early in `app.html`; it now lives only on `/more/settings` (see below).
+`Icon.svelte` provides single-color inline SVGs (all paths
 use `currentColor`) and has replaced every colored emoji across all screens; like/dislike preferences
 use labelled icon buttons.
 

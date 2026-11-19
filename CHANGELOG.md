@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.2.6 — 2026-11-19 (macros, diet & athlete guidance, theme in settings)
+
+### Added
+- Researched the nutrition/diet/sport rules online before coding; the evidence and source URLs are
+  recorded in `docs/19-NUTRITION-AND-SPORT-EVIDENCE.md`.
+- Migration `0013_product_macros` adds editorial `protein_per_100g`, `carbs_per_100g`,
+  `fat_per_100g` and `fiber_per_100g` to `products`, seeded idempotently alongside calories.
+  `belhana_core::nutrition` adds `MacroEstimate`, `macro_from_row`, `recipe_macro_map`, MET burn,
+  Mifflin–St Jeor BMR, activity factors and macro targets, all with unit tests.
+- Estimated macros now appear next to calories on recipes and their ingredients, plan slots,
+  today's table, quick basics, shopping items and stock lots (`MacroFacts.svelte`, `≈` labels).
+- Two new pages linked from `/more`: `/more/diets` (iron, copper, zinc, calcium, vitamin D, B12 and
+  folate food suggestions; Mediterranean, elimination and balanced-family plans) and
+  `/more/athletes` (profile-based BMR/TDEE/macros, MET exercise burn, and pre/post-workout timing
+  with alternatives). Backed by `GET /api/nutrition-guide` and `POST /api/nutrition/athlete-plan`.
+- Corrected the illustrative burn figures from the request: MET-based estimates for a 70 kg adult
+  are ≈245 kcal/hour for brisk walking and ≈245–420 kcal/hour for weight training, not 300/900.
+  The app explains the assumption instead of presenting those numbers as facts.
+
+### Changed
+- Theme selection moved from the floating app button into a dedicated card on `/more/settings`;
+  the `belhana.theme` persistence and first-paint restore are unchanged.
+- Added `diet`, `activity`, `flame`, `heart` and `target` monochrome SVG icons and Arabic/English
+  labels for all new nutrition, diet, exercise and timing terms.
+
+### Verified
+- `cargo check --workspace` and `cargo test --workspace` pass 30 tests (7 new nutrition/guidance
+  tests); `npm run build` in `apps/web` is clean.
+- API smoke on a fresh database: nutrition guide 200 with 3 diets, 7 micronutrients, 10 exercises,
+  4 timing sections and 10 sources; athlete plan 200 for a 70 kg adult with `bmr=1649`,
+  `tdee=2556`, `protein_g=98`, `carbs_g=335.4`, `fat_g=91.4`, `burn_kcal=245` and `met=3.5`.
+  Recipe, dashboard, plan-slot and shopping responses carry `estimated_macros` (13/14 shopping
+  items with a catalog product match).
+- Browser pass over all 18 app screens in Arabic/English and light/dark: 0 console errors, no emoji,
+  no floating `.theme-toggle`, both new `/more` tiles present, Settings Light/Dark buttons switch
+  and persist the theme, athlete recalculation, diet tabs/accordions/sources and language toggles
+  work. The two remaining `dashed` borders are intentional `.notice` callouts, not slot underlines.
+
 ## 0.2.5 — 2026-11-19 (estimated calories, light/dark notes & monochrome icons)
 
 ### Added

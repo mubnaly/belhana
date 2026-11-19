@@ -4,6 +4,7 @@
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import { kcalText } from '$lib/format.js';
+	import MacroFacts from '$lib/MacroFacts.svelte';
 	import Icon from '$lib/Icon.svelte';
 
 	let recipes = [];
@@ -325,6 +326,7 @@
 					<div class="k">{r.meal_types.map((m) => t(m)).join(' · ')}</div>
 					<div class="k">{r.difficulty} · {r.prep_minutes + r.cook_minutes}{lang === 'ar' ? ' د' : 'm'}</div>
 					<div class="k kcal estimate">{kcalText(r.kcal_per_serving, lang)}</div>
+					<MacroFacts macros={r.macros_per_serving} {lang} />
 				</div>
 			{/each}
 		</div>
@@ -381,6 +383,7 @@
 					<span class="kcal estimate" title={t('kcalEstimate')}>{kcalText(detail.recipe.kcal_per_serving, lang)}</span>
 					{#if !detail.recipe.kcal_per_serving}<span class="muted">{t('kcalUnknown')}</span>{/if}
 					<span class="muted">{t('perServing')}</span>
+					<MacroFacts macros={detail.recipe.macros_per_serving} {lang} compact={false} showFiber={true} />
 				</div>
 
 				{#if detail.cost}
@@ -399,6 +402,7 @@
 						<li>
 							<span>{ing.raw_name_ar ?? ing.product_id} — {formatQty(ing.quantity, ing.unit)}{ing.optional ? ' (' + t('optional') + ')' : ''}</span>
 							{#if ing.kcal}<span class="kcal estimate">{kcalText(ing.kcal, lang)}</span>{/if}
+							<MacroFacts macros={ing.macros} {lang} />
 						</li>
 					{/each}
 				</ul>

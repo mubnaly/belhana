@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api.js';
 	import { t, toggleLang, getLang, setLang, langStore } from '$lib/i18n.js';
+	import { themeStore, setTheme, getTheme } from '$lib/theme.js';
 	import Icon from '$lib/Icon.svelte';
 
 	let hh = null;
@@ -10,6 +11,8 @@
 	let busy = false;
 	let lang = getLang();
 	$: lang = $langStore;
+	let theme = getTheme();
+	$: theme = $themeStore;
 
 	// editable form
 	let name = '';
@@ -64,6 +67,29 @@
 
 	{#if err}<div class="error-msg">{err}</div>{/if}
 	{#if saved}<div class="notice"><Icon name="check" size={16} /> {lang === 'ar' ? 'تم الحفظ' : 'Saved'}</div>{/if}
+
+	<div class="card">
+		<h3><Icon name={theme === 'dark' ? 'moon' : 'sun'} size={16} /> {t('theme')}</h3>
+		<p class="muted" style="font-size:.8rem">{t('themeHint')}</p>
+		<div style="display:flex; gap:.4rem; flex-wrap:wrap">
+			<button
+				class="chip {theme === 'light' ? 'ok' : ''}"
+				style="cursor:pointer"
+				onclick={() => setTheme('light')}
+				aria-label={t('themeLight')}
+			>
+				<Icon name="sun" size={14} /> {t('themeLight')}
+			</button>
+			<button
+				class="chip {theme === 'dark' ? 'ok' : ''}"
+				style="cursor:pointer"
+				onclick={() => setTheme('dark')}
+				aria-label={t('themeDark')}
+			>
+				<Icon name="moon" size={14} /> {t('themeDark')}
+			</button>
+		</div>
+	</div>
 
 	{#if !hh && !err}
 		<p class="muted">{t('loading')}</p>

@@ -8,6 +8,7 @@ pub mod family_routes;
 pub mod households_routes;
 pub mod imports_routes;
 pub mod inventory_routes;
+pub mod nutrition_routes;
 pub mod merchants_routes;
 pub mod planning_routes;
 pub mod pricing_routes;
