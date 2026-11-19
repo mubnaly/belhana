@@ -1,5 +1,8 @@
 // Belhana API client. The base URL is the backend server; during `vite dev`
 // requests go through the Vite proxy, in production to the configured origin.
+// Static hosting without a backend automatically uses the bundled demo client.
+
+import { demoRequest } from './demo.js';
 
 // Inside the Tauri WebView there is no Vite proxy; talk to the API directly.
 // Desktop uses 127.0.0.1; the Android emulator reaches the host on 10.0.2.2.
@@ -43,6 +46,19 @@ export function setApiBase(url) {
 	const value = String(url || '').trim().replace(/\/$/, '');
 	if (value) window.localStorage.setItem('belhana.apiBase', value);
 	else window.localStorage.removeItem('belhana.apiBase');
+}
+
+// On a backend-free static host, serve the bundled snapshot locally. A dev
+// server (Vite proxy), Tauri app, or an explicitly configured API base always
+// use the real network client. Settings can override either way.
+export function isDemoMode() {
+	if (typeof window === 'undefined') return false;
+	const override = window.localStorage.getItem('belhana.demoMode');
+	if (override === '1') return true;
+	if (override === '0') return false;
+	if (isTauri() || storedApiBase() || import.meta.env?.BELHANA_API_BASE) return false;
+	const host = window.location.hostname;
+	return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1';
 }
 
 // Resolved on every request so Settings can switch the server without a reload.
@@ -119,6 +135,7 @@ export class ApiError extends Error {
 }
 
 async function request(method, path, body, opts = {}) {
+	if (isDemoMode()) return demoRequest(method, path, body);
 	const headers = { ...(opts.headers || {}) };
 	if (body !== undefined) headers['Content-Type'] = 'application/json';
 	if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
@@ -161,6 +178,12 @@ export const api = {
 
 async function refresh() {
 	if (!refreshToken) return false;
+	if (isDemoMode()) {
+		const demo = await demoRequest('POST', '/api/auth/refresh', { refresh_token: refreshToken });
+		accessToken = demo.access_token;
+		persist();
+		return true;
+	}
 	try {
 		const res = await fetch(`${getApiBase()}/api/auth/refresh`, {
 			method: 'POST',

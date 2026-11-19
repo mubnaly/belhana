@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { api, money } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import Icon from '$lib/Icon.svelte';
@@ -62,7 +63,7 @@
 	{:else if !status}
 		<div class="card">
 			<p>{lang === 'ar' ? 'لا توجد ميزانية أسبوعية مضبوطة بعد.' : 'No weekly budget configured yet.'}</p>
-			<a href="/more/settings" class="btn"><Icon name="arrowRight" size={16} /> {t('settings')}</a>
+			<a href="{base}/more/settings" class="btn"><Icon name="arrowRight" size={16} /> {t('settings')}</a>
 		</div>
 	{:else}
 		<div class="grid2">

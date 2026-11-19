@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import { kcalText, qty } from '$lib/format.js';
@@ -79,7 +80,7 @@
 		<div class="card">
 			<p>{t('empty')}</p>
 			<p class="muted">{lang === 'ar' ? 'ولّد خطة أسبوعية أولًا، ثم أنشئ قائمة المشتريات منها.' : 'Generate a weekly plan first, then create the shopping list from it.'}</p>
-			<a href="/plan" class="btn"><Icon name="arrowRight" size={16} /> {t('plan')}</a>
+			<a href="{base}/plan" class="btn"><Icon name="arrowRight" size={16} /> {t('plan')}</a>
 		</div>
 	{:else}
 		<div class="card row">

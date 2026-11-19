@@ -1,6 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.belhana_desktop" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <!-- Launch splash uses the app logo on the app's cream background. -->
+        <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 </resources>

@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, getLang, langStore, toggleLang } from '$lib/i18n.js';
 	import { kcalText } from '$lib/format.js';
@@ -86,7 +87,7 @@
 		busy = true;
 		try {
 			await api.post('/api/shopping-lists', { plan_id: plans[0].id });
-			window.location.href = '/shopping';
+			window.location.href = base + '/shopping';
 		} catch (e) {
 			err = e.message;
 		}
@@ -151,7 +152,7 @@
 					<span class="chip ok"><Icon name="diet" size={14} /> {t('selectedDiet')}</span>
 					<p class="muted" style="margin:.35rem 0 0">{planDietNote || t('dietPlanNote')}</p>
 				</div>
-				<a class="btn secondary small" href="/more/diets"><Icon name="pencil" size={14} /> {t('changeDiet')}</a>
+				<a class="btn secondary small" href="{base}/more/diets"><Icon name="pencil" size={14} /> {t('changeDiet')}</a>
 			</div>
 		</div>
 	{/if}

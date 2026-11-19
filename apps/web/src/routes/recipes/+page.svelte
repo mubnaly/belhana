@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { api, money, formatQty, getAuth, setHousehold } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
@@ -323,7 +324,7 @@
 					<span class="chip ok"><Icon name="diet" size={14} /> {t('selectedDiet')}: {activeDietName}</span>
 					<p class="muted" style="margin:.35rem 0 0">{t('dietFilterNote')}</p>
 				</div>
-				<a class="btn secondary small" href="/more/diets"><Icon name="pencil" size={14} /> {t('changeDiet')}</a>
+				<a class="btn secondary small" href="{base}/more/diets"><Icon name="pencil" size={14} /> {t('changeDiet')}</a>
 			</div>
 		</div>
 	{/if}
@@ -465,7 +466,7 @@
 						<div class="empty-icon"><Icon name="diet" size={38} /></div>
 						<h3 style="margin:.3rem 0">{t('noDietMeals')}</h3>
 						<p class="muted">{activeDietName}</p>
-						<a class="btn small" href="/more/diets"><Icon name="pencil" size={14} /> {t('changeDiet')}</a>
+						<a class="btn small" href="{base}/more/diets"><Icon name="pencil" size={14} /> {t('changeDiet')}</a>
 					</div>
 				{:else}
 					<p class="muted">{savedOnly ? t('noSaved') : t('empty')}</p>

@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Belhana",
   "version": "0.1.0",
-  "identifier": "app.belhana.desktop",
+  "identifier": "com.dawwar.online.allama.belhana",
   "build": {
     "beforeDevCommand": "npm --prefix ../web run dev -- --host 127.0.0.1",
     "devUrl": "http://127.0.0.1:5173",

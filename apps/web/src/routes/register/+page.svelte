@@ -1,5 +1,6 @@
 <script>
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api, setAuth } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import Icon from '$lib/Icon.svelte';
@@ -24,7 +25,7 @@
 				household_name: householdName || undefined
 			});
 			setAuth(data);
-			goto('/');
+			goto(base + '/');
 		} catch (e) {
 			err = e.message;
 		}
@@ -34,7 +35,7 @@
 
 <div class="page" style="max-width:420px; padding-top:6vh">
 	<header style="text-align:center; margin-bottom:1.5rem">
-		<div style="color:var(--primary-dark); line-height:1"><Icon name="leaf" size={48} /></div>
+		<img src="{base}/logo.svg" alt="" width="72" height="72" style="display:block; margin:0 auto .6rem" />
 		<h1>{t('register')}</h1>
 	</header>
 
@@ -59,7 +60,7 @@
 	</div>
 
 	<p style="text-align:center">
-		<a href="/login">{t('login')} <Icon name="arrowRight" size={14} /></a>
+		<a href="{base}/login">{t('login')} <Icon name="arrowRight" size={14} /></a>
 	</p>
 	<p style="text-align:center">
 		<button class="btn secondary small" onclick={toggleLang}>{lang === 'ar' ? 'English' : 'عربي'}</button>

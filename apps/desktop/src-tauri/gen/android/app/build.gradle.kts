@@ -14,16 +14,37 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// Optional Play/upload signing. Put keystore.properties next to gradlew
+// (see keystore.properties.example). Without it, release builds fall back to
+// the debug key so local installs keep working.
+val keystoreProperties = Properties().apply {
+    val propFile = rootProject.file("keystore.properties")
+    if (propFile.exists()) {
+        propFile.inputStream().use { load(it) }
+    }
+}
+val hasReleaseKeystore = !keystoreProperties.getProperty("storeFile").isNullOrBlank()
+
 android {
     compileSdk = 37
-    namespace = "app.belhana.desktop"
+    namespace = "com.dawwar.online.allama.belhana"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
-        applicationId = "app.belhana.desktop"
+        applicationId = "com.dawwar.online.allama.belhana"
         minSdk = 24
         targetSdk = 37
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+    }
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
     buildTypes {
         getByName("debug") {
@@ -43,9 +64,12 @@ android {
             // emulator, a LAN address on a phone), so keep cleartext allowed
             // in release too. The generated Tauri template sets this to false.
             manifestPlaceholders["usesCleartextTraffic"] = "true"
-            // Locally installable release APK. Replace with a real upload/store
-            // signing config before distributing to other people.
-            signingConfig = signingConfigs.getByName("debug")
+            // Use the owner's Play/upload keystore when provided; otherwise
+            // keep the locally installable debug-signed fallback.
+            signingConfig = if (hasReleaseKeystore)
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug")
             optimization {
                enable = true
             }

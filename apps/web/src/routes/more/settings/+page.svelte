@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
-	import { api, getApiBase, setApiBase } from '$lib/api.js';
+	import { api, getApiBase, setApiBase, isDemoMode } from '$lib/api.js';
+	import { resetDemo } from '$lib/demo.js';
 	import { t, toggleLang, getLang, setLang, langStore } from '$lib/i18n.js';
 	import { themeStore, setTheme, getTheme } from '$lib/theme.js';
 	import Icon from '$lib/Icon.svelte';
@@ -11,6 +12,7 @@
 	let apiSaved = false;
 	let busy = false;
 	let apiBase = '';
+	let demoMode = false;
 	let lang = getLang();
 	$: lang = $langStore;
 	let theme = getTheme();
@@ -40,8 +42,19 @@
 
 	onMount(() => {
 		apiBase = getApiBase();
+		demoMode = isDemoMode();
 		load();
 	});
+
+	function switchDemo(next) {
+		window.localStorage.setItem('belhana.demoMode', next ? '1' : '0');
+		window.location.reload();
+	}
+
+	function resetDemoData() {
+		resetDemo();
+		window.location.reload();
+	}
 
 	async function applyApiBase() {
 		setApiBase(apiBase);
@@ -120,6 +133,26 @@
 			<button class="btn small" onclick={applyApiBase}>{t('apply')}</button>
 		</div>
 		{#if apiSaved}<p class="muted" style="margin:.3rem 0 0">{t('applied')}</p>{/if}
+	</div>
+
+	<div class="card">
+		<h3>{lang === 'ar' ? 'الوضع التجريبي (بدون سيرفر)' : 'Offline demo (no backend)'}</h3>
+		<p class="muted" style="font-size:.8rem">
+			{lang === 'ar'
+				? 'يعمل التطبيق ببيانات جاهزة محفوظة في المتصفح عندما لا يوجد سيرفر. عطّله بعد إدخال عنوان API أعلاه.'
+				: 'The app runs from a bundled sample dataset stored in your browser when no API server exists. Turn it off after setting an API address above.'}
+		</p>
+		<div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem">
+			<button class="chip {demoMode ? 'ok' : ''}" style="cursor:pointer" onclick={() => switchDemo(true)}>
+				{lang === 'ar' ? 'تشغيل الوضع التجريبي' : 'Use demo data'}
+			</button>
+			<button class="chip {!demoMode ? 'ok' : ''}" style="cursor:pointer" onclick={() => switchDemo(false)}>
+				{lang === 'ar' ? 'استخدام سيرفر API' : 'Use API server'}
+			</button>
+			<button class="btn secondary small" onclick={resetDemoData}>
+				{lang === 'ar' ? 'إعادة ضبط البيانات التجريبية' : 'Reset demo data'}
+			</button>
+		</div>
 	</div>
 
 	{#if !hh && !err}

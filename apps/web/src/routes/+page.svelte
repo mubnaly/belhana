@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { getLang, t, toggleLang, langStore } from '$lib/i18n.js';
 	import { isAuthed, getAuth, api, logout, formatQty } from '$lib/api.js';
 	import { kcalText } from '$lib/format.js';
@@ -17,7 +18,7 @@
 
 	onMount(async () => {
 		if (!authed) {
-			goto('/login');
+			goto(base + '/login');
 			return;
 		}
 		try {
@@ -25,7 +26,7 @@
 		} catch (e) {
 			if (e.status === 401) {
 				logout();
-				goto('/login');
+				goto(base + '/login');
 			} else {
 				err = e.message;
 			}
@@ -76,7 +77,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin: -1rem -1rem 1rem; width: calc(100% + 2rem)">
-		<div class="brand"><Icon name="leaf" size={16} /> {t('appName')}</div>
+		<div class="brand"><img src="{base}/logo.svg" alt="" width="22" height="22" /> {t('appName')}</div>
 		<div style="display:flex; gap:.5rem; align-items:center">
 			<button class="btn secondary small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
 			{#if authed}
@@ -84,7 +85,7 @@
 					class="btn secondary small"
 					onclick={() => {
 						logout();
-						goto('/login');
+						goto(base + '/login');
 					}}>{t('logout')}</button
 				>
 			{/if}
@@ -104,7 +105,7 @@
 		<p class="muted kcal-hint">{t('kcalEstimate')}</p>
 		{#if data.today_table.length === 0}
 			<div class="card">
-				<p class="muted">{t('empty')} — <a href="/plan">{t('generatePlan')}</a></p>
+				<p class="muted">{t('empty')} — <a href="{base}/plan">{t('generatePlan')}</a></p>
 			</div>
 		{:else}
 			<div class="notes today-notes">
@@ -146,7 +147,7 @@
 			<p class="muted" style="margin:.15rem 0 .5rem">{t('sideSuggestHint')}</p>
 			<div class="row" style="margin-top:.7rem">
 				<span class="muted">{t('tapDishHint')}</span>
-				<a href="/recipes" class="btn small">{t('recipes')}</a>
+				<a href="{base}/recipes" class="btn small">{t('recipes')}</a>
 			</div>
 		{/if}
 
@@ -164,7 +165,7 @@
 						</a>
 					{/each}
 				</div>
-				<a href="/recipes" class="btn secondary small" style="margin-top:.7rem">{t('allRecipes')}</a>
+				<a href="{base}/recipes" class="btn secondary small" style="margin-top:.7rem">{t('allRecipes')}</a>
 			</div>
 		{/if}
 
@@ -190,7 +191,7 @@
 			<div class="card row">
 				<span>{data.shopping_list_status.purchased_items}/{data.shopping_list_status.total_items} {t('purchased')}</span>
 				<span><b>{money(data.shopping_list_status.estimated_total_minor)}</b></span>
-				<a href="/shopping" class="btn small">{t('shopping')}</a>
+				<a href="{base}/shopping" class="btn small">{t('shopping')}</a>
 			</div>
 		{/if}
 
@@ -207,7 +208,7 @@
 						<span class="chip warn">{lot.expiry_date}</span>
 					</div>
 				{/each}
-				<a href="/inventory">{t('inventory')} ←</a>
+				<a href="{base}/inventory">{t('inventory')} ←</a>
 			</div>
 		{/if}
 

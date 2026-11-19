@@ -3,12 +3,24 @@
 Arabic-first household food budgeting, meal planning and price-intelligence app for Egyptian families.
 The guiding rules are **deterministic calculations, traceable prices, visible uncertainty, reviewable AI actions**.
 
-> Current delivery: working Rust/Axum API, SvelteKit SPA and Tauri 2 desktop shell, backed by SQLite
-> for local development. The schema is written to be Postgres-compatible; a Postgres deployment path
+> Current delivery: working Rust/Axum API, SvelteKit SPA and Tauri 2 desktop/Android shell, backed by SQLite
+> for local development. The web app can also run as a **backend-free static demo** (GitHub Pages) using a
+> bundled seeded snapshot. The schema is written to be Postgres-compatible; a Postgres deployment path
 > is documented in [docs/18-DEPLOYMENT.md](docs/18-DEPLOYMENT.md). See
 > [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exactly what is and is not implemented.
 
-## Quick start (local development)
+## Highlights
+
+- **Backend-free static demo:** on a non-localhost static host with no configured API base, the SPA auto-enables
+  demo mode and serves data from `apps/web/src/lib/demo-data.json` in the browser (`localStorage.belhana.demoState`).
+  Tauri, localhost dev, or an explicit `belhana.apiBase` / `BELHANA_API_BASE` use the real API. Override in Settings
+  or via `localStorage.belhana.demoMode` (`1` demo, `0` API).
+- **Branding:** a hand-built bowl-and-grain logo is used in the web app, as the boot splash, and across Tauri/Android
+  icons and the Android splash screen (`scripts/generate_logo.py` regenerates assets).
+- **Mobile identity:** Android/Tauri app ID is `com.dawwar.online.allama.belhana`, ready for a Play upload once built
+  with an owner-provided upload keystore/AAB.
+
+## Quick start (local development with API)
 
 Requirements: Rust 1.77+ (tested on 1.99), Node.js 20+ and npm. No database server is required —
 SQLx uses a local SQLite file and applies migrations at startup.
@@ -33,38 +45,75 @@ Health check: `GET http://127.0.0.1:8080/healthz` → `{"app":"belhana-api","ok"
 On first start the database is migrated and seeded (categories, products, recipes, batch-prep guides,
 user baselines and the Olad Zain post as an **unreviewed** import batch).
 
-Production web bundle: `cd apps/web && npm run build` → static SPA in `apps/web/build`.
-Desktop shell: `cd apps/desktop && npm install && npm run tauri dev` (WebView2 on Windows; API must be running).
+## Static web build & GitHub Pages demo
 
-Android app (Windows host, Android SDK + a **complete** NDK + JDK 17 + `aarch64-linux-android` Rust
-target):
+```powershell
+cd apps/web
+npm install
+npm run build                              # static SPA in apps/web/build
+$env:BELHANA_BASE='/belhana'; npm run build # GitHub Pages project-site base
+```
+
+The build writes a static SPA to `apps/web/build` (adapter-static, fallback `index.html`), copies
+`404.html` for SPA deep links, and includes `.nojekyll`. For GitHub Pages project sites set
+`BELHANA_BASE=/belhana` so routes/assets resolve under `/belhana/`.
+
+The committed demo snapshot (`apps/web/src/lib/demo-data.json`) is captured from a seeded local API by
+`scripts/capture_demo_fixture.py` (`demo@belhana.app` / `demo123` in the capture script). Regenerate it
+after seed or demo-relevant API changes while `belhana-api` is running on `127.0.0.1:8080`.
+
+CI/workflows in `.github/workflows/`: Rust tests, web build, GitHub Pages deploy (`BELHANA_BASE=/belhana`),
+and an Android APK artifact build.
+
+## Desktop shell
 
 ```powershell
 cd apps/desktop
-npx tauri android init --ci --skip-targets-install   # once, creates src-tauri/gen/android
-npx tauri android build --apk -t aarch64 --ci        # release is the default; NO --debug
+npm install
+npm run tauri dev
 ```
 
-**Always build release, not debug.** A debug APK ships the unoptimised Rust `.so` with full
-debuginfo: 118.55 MB of the old 125.46 MB APK. Release (with `strip`, `lto`, `opt-level = "s"` and
-`panic = "abort"` from `src-tauri/Cargo.toml`) cuts the `.so` to 4.02 MB, and Gradle's release
-minification cuts the Kotlin dex from ~13 MB to 1.41 MB — a **5.57 MB** APK. The generated
-`build.gradle.kts` keeps `usesCleartextTraffic=true` in release because this app must reach a
-local/LAN HTTP API, and signs release with the local debug key so it is installable; replace that
-with a real keystore before distributing (re-run `tauri android init` only if prepared to reapply
-these edits).
+Requires WebView2 on Windows. In dev the shell loads the Vite server; production builds bundle
+`apps/web/build` (`frontendDist: ../../web/build`). The API must be running unless you use demo mode on a
+static web build.
 
-`--skip-targets-install` is needed on this host so project generation does not try to install extra
-Rust targets. The NDK directory must contain `toolchains/llvm/prebuilt/windows-x86_64`; if
-`sdkmanager` cannot reach Google's repository, install the verified `android-ndk-r26b-windows.zip`
-(NDK `26.1.10909125`) manually under `$ANDROID_HOME\ndk\26.1.10909125`.
+## Android app (Google Play–ready build path)
 
-The built APK is
-`apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`.
-The Tauri crate includes a `belhana_desktop_lib` cdylib/staticlib target with the mobile entry point,
-which Gradle needs to link the Android `.so`. The app uses `10.0.2.2:8080` in the Android emulator;
-on a real phone set **Settings →
-Server address** to the API's LAN address. iOS requires macOS/Xcode.
+Requirements (Windows host example): Android SDK + a **complete** NDK + JDK 17 + `aarch64-linux-android` Rust target.
+
+```powershell
+$env:ANDROID_HOME='D:\programs\android_sdk'
+$env:ANDROID_NDK_HOME='D:\programs\android_sdk\ndk\26.1.10909125'
+$env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-17'
+
+cd apps/desktop
+npx tauri android build --apk -t aarch64 --ci   # release is the default
+```
+
+**Always build release, not debug.** Release uses `strip`, `lto`, `opt-level = "s"` and `panic = "abort"`
+(`src-tauri/Cargo.toml`) and Gradle minification, producing a small installable APK. The generated Android
+project lives in `apps/desktop/src-tauri/gen/android` and contains manual edits (cleartext traffic for local/LAN
+HTTP API, release/signing config, splash resources, moved package) — **do not rerun `tauri android init` unless you
+are prepared to reapply them**.
+
+### App identity & signing
+
+- **Application ID / namespace:** `com.dawwar.online.allama.belhana` (`tauri.conf.json` identifier and Android Gradle config).
+- **Release signing:** `gen/android/app/build.gradle.kts` reads optional `gen/android/keystore.properties` (see
+  `keystore.properties.example`). If no upload keystore is provided, release falls back to the local debug key so
+  builds remain installable; this is **not** suitable for Google Play upload.
+- **Google Play:** create/provide an upload keystore, copy `keystore.properties.example` to
+  `gen/android/keystore.properties` (gitignored) with the real values, then build a signed release **AAB** for Play
+  (for example `npx tauri android build --aab -t aarch64 --ci`, depending on your Tauri/Gradle flow) and upload it
+  to the Play Console. APK artifacts from CI/local builds are useful for sideload/testing.
+
+### Output & runtime notes
+
+- APK output: `apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`.
+- The Tauri crate includes a `belhana_desktop_lib` cdylib/staticlib target with the mobile entry point for Gradle.
+- The app uses `10.0.2.2:8080` in the Android emulator; on a real phone set **Settings → Server address** to the
+  API's LAN address. Cleartext HTTP is allowed in release because the app may target a local/LAN API.
+- iOS requires macOS/Xcode.
 
 ## Repository layout
 
@@ -75,27 +124,26 @@ Server address** to the API's LAN address. iOS requires macOS/Xcode.
 | `crates/belhana-auth` | Argon2 password hashing, JWT access/refresh tokens |
 | `crates/belhana-core` | Domain logic: household, family, prices, imports, recipes, inventory, planning, shopping, occasions, AI tools |
 | `crates/belhana-ai` | Gemini/OpenAI provider abstraction, tool schemas, proposal guardrails |
-| `apps/api` | Axum HTTP server, 16 route modules, seeding, CORS, tracing |
-| `apps/web` | SvelteKit 5 + TypeScript-ready SPA, Arabic RTL default, English switch |
-| `apps/desktop` | Tauri 2 shell hosting the SPA |
+| `apps/api` | Axum HTTP server, route modules, seeding, CORS, tracing |
+| `apps/web` | SvelteKit 5 SPA, Arabic RTL default, English switch, backend-free demo client, static build |
+| `apps/desktop` | Tauri 2 shell hosting the SPA / Android project (generated, manually maintained) |
 | `workers/maintenance_worker` | Stale-price sweep, expiry notifications, pruning |
-| `database/migrations/sqlite` | 11 ordered SQLx migrations (`0011_guidance_and_purchasing`) |
-| `scripts` | `smoke_guidance.py` (Python, 30 checks) + PowerShell smoke tests (Arabic payloads in `.json` files) |
+| `database/migrations/sqlite` | Ordered SQLx migrations |
+| `scripts` | Smoke tests, demo fixture capture, logo asset generation |
+| `.github/workflows` | Rust tests, web build, GitHub Pages deploy, Android APK artifact |
 | `docs` | Product, architecture, schema and operational documentation |
-
-The original 19-crate sketch in the product brief was consolidated into six crates: one per
-architectural layer instead of one per feature. See `docs/02-ARCHITECTURE.md`.
 
 ## Guidance & purchasing features
 
-On top of the MVP, each household gets six seeded rules: an `ai_instruction` sentence (injected into the
+On top of the MVP, each household gets seeded rules: an `ai_instruction` sentence (injected into the
 AI system prompt only), `meal_staple` preferences for breakfast/lunch/dinner, a `fixed_spend` amount for
-items such as spices (buy 20 EGP of salt rather than a kilo), and `leftover_carryover`. Unused food
-carries into the next week via `carry_over` stock lots, which the planner consumes first. Prices can be
-entered manually with package metadata (e.g. 30 eggs for 130 EGP) and edited afterwards with a full
-audit trail; cheapest-per-unit selection compares packs in one reference unit and never mixes units.
-The `/more/tips` page offers 25 filterable meal tips, and generated plans explain staple fit and
-leftover use. Mutating AI actions remain proposals that require human approval.
+items such as spices, and `leftover_carryover`. Unused food carries into the next week via `carry_over`
+stock lots, which the planner consumes first. Prices can be entered manually with package metadata and
+edited afterwards with a full audit trail; prices entered/edited in the app are stored as **confirmed**
+(user-entered, usable in costing, editable) and remain distinct from clinical `verified` evidence.
+Cheapest-per-unit selection compares packs in one reference unit and never mixes units. The `/more/tips`
+page offers filterable meal tips, and generated plans explain staple fit and leftover use. Mutating AI
+actions remain proposals that require human approval.
 
 ## Tests
 
@@ -104,10 +152,6 @@ cargo test --workspace
 cd apps/web && npm run build
 python scripts/smoke_guidance.py   # requires the API running on 127.0.0.1:8080
 ```
-
-23 unit/integration tests cover money/units/text, auth tokens, package prices and planning/scenario
-logic. `scripts/smoke*.ps1` exercise the full MVP API against the seeded SQLite database; the Python
-`scripts/smoke_guidance.py` covers the guidance/purchasing features end to end (30 checks).
 
 ## Safety properties
 

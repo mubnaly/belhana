@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Night variant keeps the same logo splash for a consistent brand. -->
     <style name="Theme.belhana_desktop" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 </resources>

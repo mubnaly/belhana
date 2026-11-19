@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import { burnText, gramText, kcalText, num } from '$lib/format.js';
@@ -76,8 +77,8 @@
 	</header>
 
 	<div class="row" style="margin-bottom:.6rem">
-		<a href="/more" class="muted">← {t('more')}</a>
-		<a href="/more/diets" class="btn secondary small"><Icon name="diet" size={14} /> {t('diets')}</a>
+		<a href="{base}/more" class="muted">← {t('more')}</a>
+		<a href="{base}/more/diets" class="btn secondary small"><Icon name="diet" size={14} /> {t('diets')}</a>
 	</div>
 
 	{#if err}<div class="error-msg">{err}</div>{/if}

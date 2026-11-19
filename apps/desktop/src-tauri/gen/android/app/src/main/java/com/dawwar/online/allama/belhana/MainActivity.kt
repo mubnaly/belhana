@@ -1,4 +1,4 @@
-package app.belhana.desktop
+package com.dawwar.online.allama.belhana
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

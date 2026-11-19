@@ -1,6 +1,7 @@
 <script>
 	import { goto } from '$app/navigation';
-	import { api, setAuth, isAuthed } from '$lib/api.js';
+	import { base } from '$app/paths';
+	import { api, setAuth, isAuthed, isDemoMode } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import Icon from '$lib/Icon.svelte';
 
@@ -17,7 +18,7 @@
 		try {
 			const data = await api.post('/api/auth/login', { email, password });
 			setAuth(data);
-			goto('/');
+			goto(base + '/');
 		} catch (e) {
 			err = e.message;
 		}
@@ -27,10 +28,18 @@
 
 <div class="page" style="max-width:420px; padding-top:8vh">
 	<header style="text-align:center; margin-bottom:1.5rem">
-		<div style="color:var(--primary-dark); line-height:1"><Icon name="leaf" size={48} /></div>
+		<img src="{base}/logo.svg" alt="" width="72" height="72" style="display:block; margin:0 auto .6rem" />
 		<h1>{t('appName')}</h1>
 		<p class="muted">{t('tagline')}</p>
 	</header>
+
+	{#if isDemoMode()}
+		<div class="notice" style="margin-bottom:1rem">
+			{lang === 'ar'
+				? 'وضع تجريبي بدون سيرفر — أدخل أي بريد وكلمة مرور لاستكشاف التطبيق.'
+				: 'Offline demo — enter any email and password to explore the app.'}
+		</div>
+	{/if}
 
 	<div class="card">
 		<form onsubmit={(e) => { e.preventDefault(); submit(); }}>
@@ -47,7 +56,7 @@
 	</div>
 
 	<p style="text-align:center">
-		<a href="/register">{t('register')} <Icon name="arrowRight" size={14} /></a>
+		<a href="{base}/register">{t('register')} <Icon name="arrowRight" size={14} /></a>
 	</p>
 	<p style="text-align:center">
 		<button class="btn secondary small" onclick={toggleLang}>{lang === 'ar' ? 'English' : 'عربي'}</button>

@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.2.8 — 2026-11-19 (backend-free Pages demo, logo/splash, Play-ready app ID)
+
+### Added
+- Backend-free static demo for GitHub Pages and other static hosts: `apps/web/src/lib/demo.js` serves a bundled
+  seeded snapshot (`apps/web/src/lib/demo-data.json`) in the browser when no backend is available.
+  `scripts/capture_demo_fixture.py` regenerates the fixture from a seeded local API (`demo@belhana.app` / `demo123`).
+- Demo mode auto-enables on non-localhost static hosts with no configured API base unless overridden by
+  `localStorage.belhana.demoMode` (`1`/`0`); Tauri, localhost dev, or explicit `belhana.apiBase` /
+  `BELHANA_API_BASE` use the real API. Settings and login expose demo/API controls and notices.
+- GitHub Pages project-site support: `BELHANA_BASE=/belhana` base path (`apps/web/svelte.config.js`), base-aware
+  asset/navigation paths, SPA deep-link fallback via copied `build/404.html` (`scripts/copy-pages-fallback.mjs`) and
+  `apps/web/static/.nojekyll`.
+- New hand-built logo assets and wiring across web, desktop and Android: `apps/web/static/logo.svg|logo.png|favicon.png`,
+  Tauri icons, Android mipmaps, `drawable-nodpi/splash_logo.png`, splash/theme resources, web boot splash, and
+  branded login/register/dashboard surfaces. `scripts/generate_logo.py` regenerates the artwork set.
+- CI/CD workflows in `.github/workflows/`: Rust workspace tests, web static build, GitHub Pages deploy
+  (`BELHANA_BASE=/belhana`), and Android `aarch64` release APK artifact build.
+- Play-upload signing path: optional `gen/android/keystore.properties` (see `keystore.properties.example`) drives
+  release signing in `app/build.gradle.kts`; without it release falls back to the local debug key for installable
+  test builds.
+
+### Changed
+- Tauri/Android application identifier changed to `com.dawwar.online.allama.belhana` (`tauri.conf.json`, Android
+  `namespace`/`applicationId`, generated assets/proguard). Kotlin sources moved from `.../java/app/belhana/desktop/`
+  to `.../java/com/dawwar/online/allama/belhana/`.
+- Deployment and project documentation updated for backend-free GitHub Pages demo operation, logo/splash, app ID,
+  and Google Play keystore/AAB steps.
+
+### Notes
+- The generated Android project contains manual edits (cleartext traffic for local/LAN HTTP API, release/signing,
+  splash, moved package); do not rerun `tauri android init` unless prepared to reapply them.
+- Google Play upload requires an owner-provided upload keystore and a signed release AAB; debug-key fallback APKs
+  are for local install/testing only.
+
 ## 0.2.7 — 2026-11-19 (household food preference, live servings, confirmed prices, Android)
 
 ### Added

@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { api, getAuth, setHousehold } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import Icon from '$lib/Icon.svelte';
@@ -62,7 +63,7 @@
 	</header>
 
 	<div class="row" style="margin-bottom:.6rem">
-		<a href="/more" class="muted">← {t('more')}</a>
+		<a href="{base}/more" class="muted">← {t('more')}</a>
 		<span class="chip warn"><Icon name="info" size={13} /> {t('estimateNote')}</span>
 	</div>
 

@@ -8,15 +8,16 @@ it deliberately does not claim unverified integrations.
 | Component | State | Evidence |
 | --- | --- | --- |
 | `belhana-common` | ✅ | 8 unit tests; money is integer piasters |
-| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (15 files, incl. `0011_guidance_and_purchasing`, `0012_product_nutrition`, `0013_product_macros`, `0014_selected_diet`, `0015_confirmed_prices`) |
+| `belhana-db` | ✅ | pool + SQLx migrations (15 files, incl. `0011`–`0015`) |
 | `belhana-auth` | ✅ | 2 tests; Argon2 + JWT access/refresh rotation |
 | `belhana-core` | ✅ | 28 tests; domains implemented against SQLite (incl. package-price, macro, MET/BMR, guidance, diet-filter and confirmed-price tests) |
 | `belhana-ai` | ✅ | provider abstraction, tool schemas, proposal guardrails; instruction rules in system prompt; no live API key tested |
-| `apps/api` | ✅ | 86 route declarations in 17 modules (incl. nutrition guide + athlete plan); startup migrate + seed; healthz |
-| `apps/web` | ✅ | 18 app screens (plus login/register), Arabic RTL/English, theme switch in Settings, light/dark sticky-note themes, monochrome SVG icons, static build clean (no a11y warnings) + browser E2E pass |
+| `apps/api` | ✅ | route modules (incl. nutrition guide + athlete plan); startup migrate + seed; healthz |
+| `apps/web` | ✅ | Arabic RTL/English SPA, theme in Settings, light/dark sticky-note themes, monochrome SVG icons, backend-free demo client, static build clean + browser E2E pass on `/belhana/` demo |
 | `apps/desktop` | 🟡 | Tauri 2 shell compiles (`cargo check`); WebView2 required to launch the Windows binary |
-| `apps/desktop` (Android) | ✅ | signed release APK built for `aarch64` (5.57 MB); not launched on a device |
+| `apps/desktop` (Android) | 🟡 | app ID `com.dawwar.online.allama.belhana`, logo/splash/signing config updated; release APK rebuild started in-session (verification pending in this snapshot) |
 | `workers/maintenance_worker` | ✅ | `--once` sweep ran clean (stale prices, expiry reminders, pruning) |
+| `.github/workflows` | ✅ | Rust tests, web build, GitHub Pages deploy (`BELHANA_BASE=/belhana`), Android APK artifact workflows added |
 
 ## MVP checklist
 
@@ -62,7 +63,30 @@ it deliberately does not claim unverified integrations.
 28. ✅ Prices entered or edited in the app are `confirmed` (not clinical `verified`), remain editable,
     and keep `previous_amount_minor` plus review events; ambiguous import rows still need unit/date/
     product confirmation.
-29. ✅ Android Gradle project generated and signed release APK built for `aarch64` (5.57 MB); see the build note below.
+29. ✅ Backend-free static demo: bundled seeded snapshot served in-browser on static hosts (GitHub Pages),
+    with demo/API mode controls, `BELHANA_BASE=/belhana` build, SPA `404.html` fallback and `.nojekyll`.
+30. 🟡 Android release APK rebuild after logo/splash/app-ID/signing updates: in progress/pending verification
+    (previous verified release APK was 5.57 MB, debug-key signed). Google Play upload requires an owner-provided
+    upload keystore and a signed release AAB.
+
+## Backend-free deployment, logo/splash & Play readiness (2026-11-19)
+
+The web client now includes a backend-free demo path (`apps/web/src/lib/demo.js`, `demo-data.json`) captured by
+`scripts/capture_demo_fixture.py` from a seeded API. Demo mode auto-enables on non-localhost static hosts without
+a configured API base, with explicit override via `belhana.demoMode`; localhost dev, Tauri, or configured
+`belhana.apiBase` / `BELHANA_API_BASE` keep using the real network client. GitHub Pages builds use
+`BELHANA_BASE=/belhana`, base-aware paths, copied `404.html`, and `.nojekyll`.
+
+Branding assets were regenerated via `scripts/generate_logo.py` and applied to the web app (logo, favicon, boot
+splash, branded screens), Tauri icons, and Android mipmaps/splash resources. The Android/Tauri identifier is now
+`com.dawwar.online.allama.belhana`, with Kotlin sources moved to `com/dawwar/online/allama/belhana` and optional
+Play-upload signing driven by `keystore.properties` (debug-key fallback when absent). CI workflows were added for
+Rust tests, web build, Pages deploy, and Android APK artifact generation.
+
+Verified in-session: `npm --prefix apps/web run build` succeeded (with and for Pages base context as noted in
+changelog/context), and browser checks against the built `/belhana/` demo showed login/dashboard/recipes/plan/
+more/prices/more/settings rendering seeded content with 0 console errors in checked flows. Android release APK
+rebuild/`apksigner` verification after these changes was started but not completed within this snapshot.
 
 ## Household preference, live servings, confirmed prices & Android (2026-11-19)
 
@@ -92,26 +116,11 @@ no المخزن, servings 1 → 3 changed ≈709 → ≈2127 kcal and rice 125 g
 row with intact words, and the new «مؤكد» / «موثّق» filters are distinct.
 
 Android project generation with `npx tauri android init --ci --skip-targets-install` succeeded. The
-first APK build failed because the installed NDK 26.1.10909125 directory contained only
-`source.properties` (the prebuilt LLVM toolchain was missing). `sdkmanager` could not fetch Google’s
-repository from this shell, so the verified `android-ndk-r26b-windows.zip` (SHA1
-`17453c61a59e848cffb8634f2c7b322417f1732e`) was downloaded and extracted manually. The next build
-exposed two real config issues, both fixed: `frontendDist` was `../web/build` (resolved to
-`apps/desktop/web/build`) and is now `../../web/build`; and the Tauri package was binary-only, so a
-`belhana_desktop_lib` cdylib/staticlib target with the `mobile_entry_point` was added in `src/lib.rs`.
-The first successful APK used `--debug` and was 125.46 MB: the unoptimised Rust `.so` alone was
-118.55 MB, and the generated Gradle debug flavor keeps debug symbols and skips dex minification.
-`[profile.release]` now applies `strip`, `lto`, `opt-level = "s"`, `codegen-units = 1` and
-`panic = "abort"`, taking the `.so` to 4.02 MB; Gradle's release minification took the dex from
-~13 MB to 1.41 MB. Final build command:
-`cd apps/desktop && npx tauri android build --apk -t aarch64 --ci` (release is the CLI default).
-Result: ✅ signed, installable APK at
+first successful release build (prior to this session's branding/signing updates) produced
 `apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`
-(5.57 MB, `apksigner verify` passes). The generated `build.gradle.kts` also had to keep
-`usesCleartextTraffic=true` in release (the app reaches a local/LAN HTTP API) and use the local debug
-signing key; a real keystore is required before distribution. Android SDK build-tools 36 and platform
-37.0 were installed by Gradle during the build; only build output is ignored by the generated Android
-`.gitignore`. The APK was not launched on a device.
+(5.57 MB, debug-key signed, `apksigner verify` passed). The generated project keeps
+`usesCleartextTraffic=true` in release (local/LAN HTTP API) and contains manual edits; avoid
+`tauri android init`.
 
 ## Macros, diet & athlete guidance, theme in Settings (2026-11-19)
 
@@ -140,144 +149,66 @@ on all 18 screens in Arabic/English and light/dark: both `/more` tiles visible, 
 no emoji, no `.theme-toggle`, `currentColor` icons, no slot underlines (the two `dashed` elements are
 intentional `.notice` callout borders), athlete recalculation on 80 kg (`bmr=1749`, `burn=280`),
 diet tabs/accordions/sources, language toggles, and Settings theme switching with persistence.
-Responsive sticky-note rules remain in `app.css` (`@media (max-width: 560px)` and `min-width: 900px`).
 
 ## Estimated calories, light/dark notes & monochrome icons (2026-11-19)
 
 Migration `0012_product_nutrition` adds `kcal_per_100g` and `grams_per_unit` to `products`, seeded from
 category defaults with named overrides in an idempotent refresh. `belhana_core::nutrition`
-(`grams_for`, `kcal_for`, `kcal_from_row`, `recipe_kcal_map`) derives calories from ingredient
-quantities and product nutrition rather than storing them as verified facts; recipe calories are
-computed, not asserted. UI surfaces (`kcalText()` in `format.js`) prefixes every value with `≈` and an
-“estimated” label so no invented nutrition is presented as measured.
+derives calories from ingredient quantities and product nutrition rather than storing them as verified facts;
+UI surfaces prefix every value with `≈` and an “estimated” label so no invented nutrition is presented as measured.
 
-The web now ships **two** matching cartoon “notes on the wall” themes — a warm-cream light palette and
-a charcoal/teal-plus-amber dark palette (not generic purple). Both keep the same sticky-note language:
-dotted wall, taped/tilted notes, ruled lines, sticker chips and offset shadows. Today's table is a
-responsive `auto-fit` grid of side-by-side note cards; all note cards reflow from phone to desktop, and
-plan slots no longer have dashed underlines. The theme toggle persists `belhana.theme` in
-`localStorage`, restored early in `app.html`; it now lives only on `/more/settings` (see below).
-`Icon.svelte` provides single-color inline SVGs (all paths
-use `currentColor`) and has replaced every colored emoji across all screens; like/dislike preferences
-use labelled icon buttons.
+The web ships **two** matching cartoon “notes on the wall” themes — a warm-cream light palette and
+a charcoal/teal-plus-amber dark palette. Both keep dotted wall, taped/tilted notes, ruled lines, sticker chips
+and offset shadows. Theme choice persists as `belhana.theme` and is restored early to avoid flash. `Icon.svelte`
+provides single-color inline SVGs (`currentColor`) replacing colored emoji across screens.
 
-Verified: API smoke check (recipes 5/5 with kcal; dashboard course order breakfast → morning snack →
-lunch → afternoon snack → dinner; shopping 12 items / 11 with kcal; inventory lot
-`estimated_kcal = 2040`; plan 6/6 slots with kcal); browser checks on `/`, `/recipes`, `/plan`,
-`/shopping`, `/inventory` and `/more` in both themes (no emoji, no dashed borders, 0 bad icons, no
-console errors, estimate labels present, responsive note grid, recipe-modal ingredient kcal visible).
-`cargo test --workspace` passes 23 tests and the Svelte production build is clean with no warnings.
-
-## Dark wall theme and recent-price cleanup (2026-11-19)
-
-The dark cartoon theme introduced here — a deep dotted "wall" background, sticky-note cards taped at
-the top with a small tilt, ruled paper lines, hard offset shadows, outlined sticker buttons, marker
-strokes under section titles, dark inputs and a dark bottom navigation — was later joined by a
-matching light theme and a user toggle (see the estimated-calories section above). Cards straighten
-and transitions stop under `prefers-reduced-motion`. All screens share the global `app.css`.
-
-The dashboard's recent-prices block now keeps only the latest observation per product, so repeated
-entries for the same item no longer fill the list. Units and review status are localized in Arabic
-(`قطعة`، `كجم`، `مؤكد`)، while English keeps the raw labels.
-
-Verified with browser style checks on `/`, `/more` and the recipe modal (wall background `#171320`,
-note cards `#2c2536`, taped top-level cards, dark modal and overlay, no console errors). `cargo test
---workspace` passes 23 tests and the Svelte production build succeeds.
+Verified: API smoke and browser checks across key screens in both themes (no emoji, 0 bad icons, no console errors,
+estimate labels present, responsive note grid). `cargo test --workspace` passed 23 tests at that point and the
+Svelte production build was clean.
 
 ## Daily table, recipes nav and quick basics (2026-11-19)
 
-`/api/dashboard` now returns `today_table`, ordered as breakfast → morning snack → lunch → afternoon snack
-→ dinner. A planned meal from today's plan becomes the main dish; otherwise a deterministic library
-suggestion is shown and flagged «مقترح». Each meal is completed with components: breakfast gets bread and
-at least two adamas, lunch gets rice (skipped when the main is already a rice dish) and a green salad,
-dinner gets bread and one adama, and fruit/vegetable snacks fill the gaps between meals. `quick_basics`
-surfaces easy homemade items (bread, white rice, green salad, an adama and the two snacks) on the home
-page.
-
-Recipes moved into the bottom navigation after Plan (six compact items). `/recipes?open=<id>` opens the
-detail modal directly, so every dish in the home table is one tap from its full recipe.
-
-Eight quick component recipes were added with empty `meal_types` so the planner never selects them as
-standalone meals: خبز بلدي سريع (one short 20–30 minute proof), أرز أبيض, سلطة خضراء, جبنة بيضاء بالزيت,
-بيض مسلوق, زبادي بالخيار, سناك فواكه and سناك خضار. The missing `خميرة` product was added to the catalog,
-bringing the shared library to 42 recipes. System recipe refresh now also updates `meal_types` and tags
-idempotently, so existing databases receive the new `bread`, `adama`, `salad`, `rice` and snack tags.
-
-Verified against the seeded API: dashboard courses arrive in the expected order with breakfast = planned
-dish + bread + two adamas and dinner = planned dish + bread + one adama; `خبز بلدي سريع` is searchable,
-has `meal_types = []`, tags `basic/bread/component/quick`, the yeast ingredient and five practical steps.
-`cargo test --workspace` passes 23 tests, `python scripts/smoke_guidance.py` passes 30/30, the Svelte
-build succeeds, and browser checks show the new table, quick-basics links, `?open=` modal and Arabic/
-English labels with no console errors.
+`/api/dashboard` returns `today_table` (breakfast → morning snack → lunch → afternoon snack → dinner) with planned
+or suggested mains and component sides/snacks. Recipes are in the bottom navigation and `/recipes?open=<id>` opens
+the detail modal directly. Eight quick component recipes were added with empty `meal_types` and the `خميرة`
+product was added to the catalog.
 
 ## Meal search and local saving (2026-11-18)
 
-`GET /api/recipes?search=` now searches both recipe names, the description, ingredient raw names
-(`recipe_ingredients.raw_name_ar/en`) and tags, and ignores blank queries. The `/recipes` screen
-debounces requests, discards out-of-order responses, and falls back when nothing matches: it can open
-a Google search for the dish or prefill the new-recipe form so the meal is created locally. Any recipe
-can be starred; bookmarks live in `localStorage` under `belhana.savedRecipes`, and a saved-only filter
-lists them after a reload. `formatQty` renders weights under 1 kg in grams and removes floating-point
-noise on recipes, shopping, inventory, dashboard, plan and batch-cooking screens.
-
-Verified against the seeded API: `كشري` → 1 result, `طماطم` (an ingredient) → 16, nonsense → 0, empty
-query → 34. `cargo test --workspace` passes 23 tests and the Svelte production build succeeds.
+`GET /api/recipes?search=` searches names, description, ingredient raw names and tags. The UI debounces requests,
+offers external-search/add-local fallback for misses, supports local star bookmarks (`belhana.savedRecipes`) and a
+saved-only filter. `formatQty` renders sub-kilogram weights in grams and trims floating-point noise.
 
 ## Recipe content expansion (2026-11-18)
 
-The shared recipe library now contains 34 dishes: the original 18 plus 16 famous Egyptian dishes
-(رقاق باللحمة، حواوشي، مكرونة بشاميل، كفتة مشوية، لوبيا باللحمة، صينية بطاطس باللحمة، كبدة إسكندراني،
-سمك سنجاري، محشي كرومب، فتة لحمة، بسبوسة، أم علي، كنافة، قطايف، مهلبية، فطير مشلتت). Every system
-recipe now has a full method with practical times, heat levels, doneness cues and storage notes, written
-originally for Belhana. Seven specialty products (سميد، جوز هند، مكسرات مشكلة، كنافة، قطايف، نشا،
-فانيليا) were added so the new dishes map to catalog products for costing and shopping.
-
-Existing system recipes are refreshed in place on startup: description, timing, cooking method and
-ordered steps are replaced, while ingredients and their costing stay untouched. Verified after the
-change: 34 recipes / 34 unique names, 130 products / 130 unique, steps present for new and existing
-dishes, and counts unchanged after a second API restart.
+The shared recipe library expanded to 34 dishes with full original step-by-step methods; system recipes refresh
+description/timing/method/steps in place on startup while ingredients/costing remain untouched.
 
 ## Guidance-feature verification pass (2026-11-17)
 
-`python scripts/smoke_guidance.py` passed 30/30 checks: 6 default rules with the expected types and
-params, 25 tips / 9 categories, carry-over default/toggle/list, package prices and cheapest-per-unit
-selection, price edit with retained prior value, staple/leftover explanation text, fixed-spend shopping
-line, no `spend` stock lot on trip completion, and the `edited` audit event. Browser checks on
-`/more/tips`, `/more/rules`, `/more/prices`, `/inventory` and `/shopping` showed no console errors, and
-the English toggle switched page content and bottom-nav labels. Shopping quantities are rounded for
-display (`1.6 kg`). `cargo test --workspace` passes 23 tests.
-
-A full-screen preview also caught a recipe-seeding bug: `create_recipe` wrote `is_system = 0` while the
-seed guard checked `is_system = 1`, so each startup re-inserted the system library (216 rows in the dev
-DB). Household-less recipes are now marked as system recipes and the guard matches `household_id IS NULL`.
-After deduplicating the dev DB (repointing plan/event references first) the API returns 18 unique recipes
-and still returns 18 after a second restart; the plan page resolves saved meals normally.
+`scripts/smoke_guidance.py` passed 30/30 checks covering rules, tips, carry-over, package prices, price edits,
+staple/leftover explanations, fixed-spend shopping and audit events. Recipe seeding idempotency was fixed.
 
 ## Final verification pass (2026-11-17)
 
-Browser E2E against the Vite dev server and seeded API verified: login → dashboard → bottom navigation →
-refresh keeps the session → `/plan`, `/shopping`, `/inventory`, `/recipes`, all nine `/more` subpages,
-imports batch review, and the Arabic/English toggle, with no console errors. Defects found there were
-fixed: Svelte 5 `children` prop in the layout; auth restored before child `onMount` so a hard refresh
-no longer bounces to login; language switching now re-keys page content; and
-`GET /api/imports/batches/{id}/source-post` was added for the review screen's original-post view.
-Also corrected the real `Money` `Add`/`Sub` implementations (explicit integer arithmetic), removed a
-duplicate Arabic unit pattern and a dead assignment, and generated `icon.ico` so the Tauri crate checks
-cleanly. (At MVP delivery `cargo test --workspace` passed 20 tests; it now passes 23 after phase 13.)
+Browser E2E against dev server and seeded API verified core flows and Arabic/English toggling; several frontend/auth
+and Tauri compile issues were fixed (`children` prop, auth restore, language re-key, source-post endpoint, Money ops, icon).
 
 ## Known limitations / open work
 
 - SQLite is the active database. Migrations use portable SQL, but a Postgres connection pool and a
   migration verification pass are still required before production deployment.
-- No live Gemini/OpenAI key was available; provider response shapes are based on documented APIs and
-  should be smoke-tested with a real key before enabling in production.
-- Facebook/Meta API, OCR import, CSV/Excel import, Android/iOS builds and offline sync are not built.
-- Frontend form labels are programmatically bound and the Svelte build has no accessibility warnings;
-  a full WCAG audit has not been performed.
+- No live Gemini/OpenAI key was available; provider response shapes should be smoke-tested with a real key.
+- Facebook/Meta API, OCR import, CSV/Excel import, iOS builds and offline sync are not built.
+- A full WCAG audit has not been performed.
 - `JWT_SECRET` defaults to a development value; must be overridden in any deployment.
+- Google Play distribution requires an owner-provided upload keystore and signed AAB; CI/local fallback signing is
+  debug-key only.
 
 ## Decision / constraint notes
 
 - The original 19-crate layout was consolidated into 5 libraries + API + worker.
 - No Tailwind; CSS variables in `apps/web/src/app.css` instead.
 - All money values in JSON and DB are integer minor units (piasters). The UI divides by 100 only for display.
+- The generated Android project under `apps/desktop/src-tauri/gen/android` is intentionally maintained with manual
+  edits; avoid regenerating it blindly.
