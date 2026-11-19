@@ -40,6 +40,10 @@ pub struct Product {
     pub brand: Option<String>,
     pub is_active: bool,
     pub notes: Option<String>,
+    /// Editorial estimate of calories per 100 g (or 100 ml for liquids).
+    pub kcal_per_100g: Option<f64>,
+    /// Typical edible grams in one default unit (piece/package/...).
+    pub grams_per_unit: Option<f64>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -58,6 +62,8 @@ impl From<sqlx::sqlite::SqliteRow> for Product {
             brand: r.get("brand"),
             is_active: r.get::<i64, _>("is_active") != 0,
             notes: r.get("notes"),
+            kcal_per_100g: r.try_get::<Option<f64>, _>("kcal_per_100g").ok().flatten(),
+            grams_per_unit: r.try_get::<Option<f64>, _>("grams_per_unit").ok().flatten(),
             created_at: r.get("created_at"),
             updated_at: r.get("updated_at"),
         }

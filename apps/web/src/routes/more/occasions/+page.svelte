@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api, money } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let events = [];
 	let err = '';
@@ -111,7 +112,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">🎉 {t('occasions')}</div>
+		<div class="brand"><Icon name="sparkles" size={16} /> {t('occasions')}</div>
 		<div style="display:flex; gap:.5rem">
 			<button class="btn small" onclick={() => (showAdd = !showAdd)}>+ {t('createEvent')}</button>
 			<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
@@ -122,13 +123,13 @@
 
 	{#if showAdd}
 		<div class="card">
-			<label>{t('eventName')}</label>
-			<input bind:value={form.name} />
+			<label for="belhana-field-1">{t('eventName')}</label>
+			<input bind:value={form.name} id="belhana-field-1"/>
 			<div class="field-row">
-				<div><label>{t('date')}</label><input type="date" bind:value={form.date} /></div>
+				<div><label for="belhana-field-2">{t('date')}</label><input type="date" bind:value={form.date} id="belhana-field-2"/></div>
 				<div>
-					<label>{lang === 'ar' ? 'النوع' : 'Type'}</label>
-					<select bind:value={form.occasion_type}>
+					<label for="belhana-field-3">{lang === 'ar' ? 'النوع' : 'Type'}</label>
+					<select bind:value={form.occasion_type} id="belhana-field-3">
 						<option value="family_visit">{lang === 'ar' ? 'زيارة أهل' : 'Family visit'}</option>
 						<option value="eid">{lang === 'ar' ? 'عيد' : 'Eid'}</option>
 						<option value="invitation">{lang === 'ar' ? 'عزومة' : 'Invitation'}</option>
@@ -138,8 +139,8 @@
 				</div>
 			</div>
 			<div class="field-row">
-				<div><label>{t('adults')}</label><input type="number" min="1" bind:value={form.adults} /></div>
-				<div><label>{t('children')}</label><input type="number" min="0" bind:value={form.children} /></div>
+				<div><label for="belhana-field-4">{t('adults')}</label><input type="number" min="1" bind:value={form.adults} id="belhana-field-4"/></div>
+				<div><label for="belhana-field-5">{t('children')}</label><input type="number" min="0" bind:value={form.children} id="belhana-field-5"/></div>
 			</div>
 			<button class="btn block" style="margin-top:.8rem" onclick={create} disabled={busy}>{t('save')}</button>
 		</div>
@@ -153,20 +154,20 @@
 				<div class="row">
 					<div>
 						<b>{ev.name}</b> <span class="chip">{ev.status}</span><br />
-						<span class="muted">👥 {ev.adults} {t('adults')} · {ev.children} {t('children')}{ev.date ? ' · ' + ev.date : ''}</span>
+						<span class="muted"><Icon name="users" size={14} /> {ev.adults} {t('adults')} · {ev.children} {t('children')}{ev.date ? ' · ' + ev.date : ''}</span>
 					</div>
 					<div style="display:flex; gap:.3rem; flex-wrap:wrap">
-						<button class="btn small" onclick={() => generateMenus(ev)} disabled={busy}>✨ {t('generateMenus')}</button>
-						<button class="btn secondary small" onclick={() => eventShopping(ev)}>🛒</button>
-						<button class="btn secondary small" onclick={() => actualCost(ev)}>💸</button>
-						<button class="btn secondary small" onclick={() => pva(ev)}>📊</button>
+						<button class="btn small" onclick={() => generateMenus(ev)} disabled={busy}><Icon name="sparkles" size={15} /> {t('generateMenus')}</button>
+						<button class="btn secondary small" onclick={() => eventShopping(ev)} title={t('shopping')} aria-label={t('shopping')}><Icon name="cart" size={16} /></button>
+						<button class="btn secondary small" onclick={() => actualCost(ev)} title={t('actualCosts')} aria-label={t('actualCosts')}><Icon name="money" size={16} /></button>
+						<button class="btn secondary small" onclick={() => pva(ev)} title={t('plannedVsActual')} aria-label={t('plannedVsActual')}><Icon name="chart" size={16} /></button>
 					</div>
 				</div>
 
 				{#if menusByEvent[ev.id]}
 					<div class="section">
 						{#each menusByEvent[ev.id] as menu}
-							<div class="row" style="padding:.4rem 0; border-top:1px solid var(--border)">
+							<div class="row" style="padding:.4rem 0">
 								<div>
 									<span class="chip {menu.selected ? 'ok' : ''}">{t(menu.tier)}</span>
 									<b>{menu.title}</b>
@@ -175,7 +176,7 @@
 								{#if !menu.selected}
 									<button class="btn small" onclick={() => approve(ev, menu)}>{t('approve')}</button>
 								{:else}
-									<span class="chip ok">✔</span>
+									<span class="chip ok"><Icon name="check" size={13} /></span>
 								{/if}
 							</div>
 							<details style="margin-bottom:.5rem">

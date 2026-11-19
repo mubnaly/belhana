@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let messages = [];
 	let input = '';
@@ -57,14 +58,14 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">🤖 {t('assistant')}</div>
+		<div class="brand"><Icon name="robot" size={16} /> {t('assistant')}</div>
 		<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
 	</header>
 
 	{#if err}<div class="error-msg">{err}</div>{/if}
 
 	{#if !assistantEnabled}
-		<div class="notice">ℹ️ {t('assistantDisabled')}</div>
+		<div class="notice"><Icon name="info" size={17} /><span>{t('assistantDisabled')}</span></div>
 	{/if}
 
 	<div class="card" style="min-height:300px; max-height:55vh; overflow-y:auto">
@@ -93,7 +94,7 @@
 
 	{#if proposals.length > 0}
 		<div class="section">
-			<h3>📝 {t('proposals')}</h3>
+			<h3><Icon name="receipt" size={17} /> {t('proposals')}</h3>
 			{#each proposals as p}
 				<div class="card row">
 					<div>

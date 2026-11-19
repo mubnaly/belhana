@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api, money } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let rules = [];
 	let products = [];
@@ -151,7 +152,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">📏 {t('rules')}</div>
+		<div class="brand"><Icon name="ruler" size={16} /> {t('rules')}</div>
 		<div style="display:flex; gap:.5rem">
 			<button class="btn small" onclick={() => (showAdd = !showAdd)}>+ {t('addRule')}</button>
 			<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
@@ -164,32 +165,32 @@
 
 	{#if showAdd}
 		<div class="card">
-			<label>{t('ruleType')}</label>
-			<select bind:value={form.rule_type}>
+			<label for="belhana-field-1">{t('ruleType')}</label>
+			<select bind:value={form.rule_type} id="belhana-field-1">
 				{#each ruleTypes as rt}<option value={rt.value}>{lang === 'ar' ? rt.ar : rt.en}</option>{/each}
 			</select>
-			<label>{t('priority')}</label>
-			<select bind:value={form.priority}>
+			<label for="belhana-field-2">{t('priority')}</label>
+			<select bind:value={form.priority} id="belhana-field-2">
 				<option value="hard">{t('hard')}</option>
 				<option value="soft">{t('soft')}</option>
 			</select>
 
 			{#if form.rule_type === 'ai_instruction'}
-				<label>{t('sentence')}</label>
-				<textarea rows="3" bind:value={form.sentence} placeholder={lang === 'ar' ? 'مثال: اجعل الأرز غداءً معتادًا…' : 'e.g. make rice the usual lunch…'}></textarea>
+				<label for="belhana-field-3">{t('sentence')}</label>
+				<textarea rows="3" bind:value={form.sentence} placeholder={lang === 'ar' ? 'مثال: اجعل الأرز غداءً معتادًا…' : 'e.g. make rice the usual lunch…'} id="belhana-field-3"></textarea>
 			{:else if form.rule_type === 'meal_staple'}
 				<div class="field-row">
 					<div>
-						<label>{t('period')}</label>
-						<select bind:value={form.period}>
+						<label for="belhana-field-4">{t('period')}</label>
+						<select bind:value={form.period} id="belhana-field-4">
 							<option value="breakfast">{t('breakfast')}</option>
 							<option value="lunch">{t('lunch')}</option>
 							<option value="dinner">{t('dinner')}</option>
 						</select>
 					</div>
 					<div>
-						<label>{t('product')}</label>
-						<select bind:value={form.product_id}>
+						<label for="belhana-field-5">{t('product')}</label>
+						<select bind:value={form.product_id} id="belhana-field-5">
 							<option value="">—</option>
 							{#each products as p}<option value={p.id}>{p.name_ar}</option>{/each}
 						</select>
@@ -198,28 +199,28 @@
 			{:else if form.rule_type === 'fixed_spend'}
 				<div class="field-row">
 					<div>
-						<label>{t('product')}</label>
-						<select bind:value={form.product_id}>
+						<label for="belhana-field-6">{t('product')}</label>
+						<select bind:value={form.product_id} id="belhana-field-6">
 							<option value="">—</option>
 							{#each products as p}<option value={p.id}>{p.name_ar}</option>{/each}
 						</select>
 					</div>
 					<div>
-						<label>{t('amount')} ({lang === 'ar' ? 'جنيه' : 'EGP'})</label>
-						<input type="number" min="1" step="1" bind:value={form.amount} />
+						<label for="belhana-field-7">{t('amount')} ({lang === 'ar' ? 'جنيه' : 'EGP'})</label>
+						<input type="number" min="1" step="1" bind:value={form.amount} id="belhana-field-7"/>
 					</div>
 				</div>
 			{:else if form.rule_type === 'meal_repeat_limit' || form.rule_type === 'dish_frequency_limit'}
 				<div class="field-row">
-					<div><label>{lang === 'ar' ? 'أقصى تكرار' : 'Max occurrences'}</label><input type="number" min="1" bind:value={form.maximum_occurrences} /></div>
-					<div><label>{lang === 'ar' ? 'خلال أيام' : 'Within days'}</label><input type="number" min="1" bind:value={form.period_days} /></div>
+					<div><label for="belhana-field-8">{lang === 'ar' ? 'أقصى تكرار' : 'Max occurrences'}</label><input type="number" min="1" bind:value={form.maximum_occurrences} id="belhana-field-8"/></div>
+					<div><label for="belhana-field-9">{lang === 'ar' ? 'خلال أيام' : 'Within days'}</label><input type="number" min="1" bind:value={form.period_days} id="belhana-field-9"/></div>
 				</div>
 			{:else if form.rule_type === 'dish_consecutive_limit'}
-				<label>{lang === 'ar' ? 'معرّف المنتج (مثال: سمك)' : 'Product id (e.g. fish)'}</label>
-				<input bind:value={form.product_id} placeholder="product_id" />
+				<label for="belhana-field-10">{lang === 'ar' ? 'معرّف المنتج (مثال: سمك)' : 'Product id (e.g. fish)'}</label>
+				<input bind:value={form.product_id} placeholder="product_id" id="belhana-field-10"/>
 			{:else if form.rule_type === 'min_legume_meals'}
-				<label>{lang === 'ar' ? 'أدنى عدد أسبوعي' : 'Minimum per week'}</label>
-				<input type="number" min="1" bind:value={form.minimum_per_week} />
+				<label for="belhana-field-11">{lang === 'ar' ? 'أدنى عدد أسبوعي' : 'Minimum per week'}</label>
+				<input type="number" min="1" bind:value={form.minimum_per_week} id="belhana-field-11"/>
 			{/if}
 
 			<button class="btn" style="margin-top:.8rem" onclick={addRule} disabled={busy}>{t('add')}</button>
@@ -238,8 +239,8 @@
 					{#if r.notes}<span class="muted">· {r.notes}</span>{/if}
 				</div>
 				<div style="display:flex; gap:.4rem">
-					<button class="btn secondary small" onclick={() => toggle(r)}>{r.enabled ? '✅' : '⬜'} {t('enabled')}</button>
-					<button class="btn secondary small" onclick={() => remove(r.id)}>🗑</button>
+					<button class="btn secondary small" onclick={() => toggle(r)}><Icon name={r.enabled ? 'check' : 'x'} size={15} /> {t('enabled')}</button>
+					<button class="btn secondary small" onclick={() => remove(r.id)} title={t('delete')} aria-label={t('delete')}><Icon name="trash" size={15} /></button>
 				</div>
 			</div>
 		{/each}

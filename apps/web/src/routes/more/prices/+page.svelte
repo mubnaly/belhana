@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api, money } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let obs = [];
 	let products = [];
@@ -133,7 +134,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">🏷️ {t('prices')}</div>
+		<div class="brand"><Icon name="tag" size={16} /> {t('prices')}</div>
 		<div style="display:flex; gap:.5rem">
 			<button class="btn small" onclick={openAdd}>+ {t('addManualPrice')}</button>
 			<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
@@ -145,46 +146,46 @@
 	{#if showForm}
 		<div class="card">
 			<h3>{editing ? t('editPrice') : t('addManualPrice')}</h3>
-			<label>{t('product')}</label>
-			<select bind:value={form.product_id} disabled={!!editing}>
+			<label for="belhana-field-1">{t('product')}</label>
+			<select bind:value={form.product_id} disabled={!!editing} id="belhana-field-1">
 				<option value="">—</option>
 				{#each products as p}<option value={p.id}>{p.name_ar}</option>{/each}
 			</select>
 			<div class="field-row">
 				<div>
-					<label>{t('amount')} ({lang === 'ar' ? 'جنيه' : 'EGP'})</label>
-					<input type="number" min="0.01" step="0.01" bind:value={form.amount} placeholder="130" />
+					<label for="belhana-field-2">{t('amount')} ({lang === 'ar' ? 'جنيه' : 'EGP'})</label>
+					<input type="number" min="0.01" step="0.01" bind:value={form.amount} placeholder="130" id="belhana-field-2"/>
 				</div>
 				<div>
-					<label>{t('unit')}</label>
-					<input bind:value={form.unit} placeholder="kg / l / piece / carton" />
-				</div>
-			</div>
-			<div class="field-row">
-				<div>
-					<label>{t('packageSize')} ({lang === 'ar' ? 'اختياري' : 'optional'})</label>
-					<input type="number" min="0.01" step="0.01" bind:value={form.package_size} placeholder="30" />
-				</div>
-				<div>
-					<label>{t('packageUnit')}</label>
-					<input bind:value={form.package_unit} placeholder="piece" />
+					<label for="belhana-field-3">{t('unit')}</label>
+					<input bind:value={form.unit} placeholder="kg / l / piece / carton" id="belhana-field-3"/>
 				</div>
 			</div>
 			<div class="field-row">
 				<div>
-					<label>{t('observationDate')}</label>
-					<input type="date" bind:value={form.observation_date} />
+					<label for="belhana-field-4">{t('packageSize')} ({lang === 'ar' ? 'اختياري' : 'optional'})</label>
+					<input type="number" min="0.01" step="0.01" bind:value={form.package_size} placeholder="30" id="belhana-field-4"/>
 				</div>
 				<div>
-					<label>{t('merchant')}</label>
-					<select bind:value={form.merchant_id}>
+					<label for="belhana-field-5">{t('packageUnit')}</label>
+					<input bind:value={form.package_unit} placeholder="piece" id="belhana-field-5"/>
+				</div>
+			</div>
+			<div class="field-row">
+				<div>
+					<label for="belhana-field-6">{t('observationDate')}</label>
+					<input type="date" bind:value={form.observation_date} id="belhana-field-6"/>
+				</div>
+				<div>
+					<label for="belhana-field-7">{t('merchant')}</label>
+					<select bind:value={form.merchant_id} id="belhana-field-7">
 						<option value="">—</option>
 						{#each merchants as m}<option value={m.id}>{m.name}</option>{/each}
 					</select>
 				</div>
 			</div>
-			<label>{t('description')}</label>
-			<input bind:value={form.notes} />
+			<label for="belhana-field-8">{t('description')}</label>
+			<input bind:value={form.notes} id="belhana-field-8"/>
 			<div style="display:flex; gap:.5rem; margin-top:.8rem">
 				<button class="btn" onclick={savePrice} disabled={busy}>{t('savePrice')}</button>
 				<button class="btn secondary" onclick={() => (showForm = false)}>{t('cancel')}</button>
@@ -219,17 +220,17 @@
 						{#if o.unit_status === 'unresolved'}<span class="chip bad">{lang === 'ar' ? 'وحدة غير محسومة' : 'unit unresolved'}</span>{/if}
 						{#if o.notes}<span class="muted">· {o.notes}</span>{/if}
 					</div>
-					<button class="btn secondary small" onclick={() => openEdit(o)}>✎ {t('edit')}</button>
+					<button class="btn secondary small" onclick={() => openEdit(o)}><Icon name="pencil" size={15} /> {t('edit')}</button>
 				</div>
 				{#if o.review_status !== 'verified' && o.review_status !== 'rejected'}
 					<div style="display:flex; gap:.4rem; margin-top:.5rem; flex-wrap:wrap">
-						<button class="btn small" onclick={() => review(o, 'verify')} disabled={busy}>✔ {t('verify')}</button>
-						<button class="btn danger small" onclick={() => review(o, 'reject')} disabled={busy}>✕ {t('reject')}</button>
+						<button class="btn small" onclick={() => review(o, 'verify')} disabled={busy}><Icon name="check" size={15} /> {t('verify')}</button>
+						<button class="btn danger small" onclick={() => review(o, 'reject')} disabled={busy}><Icon name="x" size={15} /> {t('reject')}</button>
 						{#if o.unit_status === 'unresolved'}
-							<button class="btn secondary small" onclick={() => { const u = prompt('unit (kg/l/piece):', 'kg'); if (u) review(o, 'confirm_unit', { unit: u }); }}>📐 {t('confirmUnit')}</button>
+							<button class="btn secondary small" onclick={() => { const u = prompt('unit (kg/l/piece):', 'kg'); if (u) review(o, 'confirm_unit', { unit: u }); }}><Icon name="ruler" size={15} /> {t('confirmUnit')}</button>
 						{/if}
 						{#if !o.observation_date}
-							<button class="btn secondary small" onclick={() => { const d = prompt('YYYY-MM-DD', new Date().toISOString().slice(0, 10)); if (d) review(o, 'confirm_date', { observation_date: d }); }}>📅 {t('confirmDate')}</button>
+							<button class="btn secondary small" onclick={() => { const d = prompt('YYYY-MM-DD', new Date().toISOString().slice(0, 10)); if (d) review(o, 'confirm_date', { observation_date: d }); }}><Icon name="calendar" size={15} /> {t('confirmDate')}</button>
 						{/if}
 					</div>
 				{/if}

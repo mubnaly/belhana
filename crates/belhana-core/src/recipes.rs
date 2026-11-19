@@ -28,6 +28,8 @@ pub struct Recipe {
     pub child_portion_factor: f64,
     pub is_system: bool,
     pub tags: Vec<String>,
+    /// Estimated calories for one serving (editorial catalog estimate).
+    pub kcal_per_serving: Option<i64>,
 }
 
 fn parse_json_array(s: Option<&String>) -> Vec<String> {
@@ -58,6 +60,7 @@ impl From<sqlx::sqlite::SqliteRow> for Recipe {
             child_portion_factor: r.get("child_portion_factor"),
             is_system: r.get::<i64, _>("is_system") != 0,
             tags: Vec::new(),
+            kcal_per_serving: None,
         }
     }
 }
@@ -73,6 +76,8 @@ pub struct RecipeIngredient {
     pub unit: String,
     pub optional: bool,
     pub note: Option<String>,
+    /// Estimated calories for this listed quantity, when known.
+    pub kcal: Option<i64>,
 }
 
 impl From<sqlx::sqlite::SqliteRow> for RecipeIngredient {
@@ -87,6 +92,7 @@ impl From<sqlx::sqlite::SqliteRow> for RecipeIngredient {
             unit: r.get("unit"),
             optional: r.get::<i64, _>("optional") != 0,
             note: r.get("note"),
+            kcal: None,
         }
     }
 }
@@ -191,6 +197,10 @@ pub async fn list_recipes(
     let rows = q.bind(limit).bind(offset).fetch_all(pool).await.map_err(map_db)?;
     let mut out: Vec<Recipe> = rows.into_iter().map(Recipe::from).collect();
     attach_tags(pool, &mut out).await?;
+    let mut kcal = crate::nutrition::recipe_kcal_map(pool).await?;
+    for r in &mut out {
+        r.kcal_per_serving = kcal.remove(&r.id);
+    }
     Ok(out)
 }
 
@@ -217,14 +227,29 @@ pub async fn get_recipe(pool: &SqlitePool, id: &str) -> Result<(Recipe, Vec<Reci
         .ok_or_else(|| CommonError::NotFound("recipe".into()))?;
     let mut recipe = Recipe::from(row);
     attach_tags(pool, std::slice::from_mut(&mut recipe)).await?;
-    let ingredients = sqlx::query("SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY sort")
-        .bind(id)
-        .fetch_all(pool)
-        .await
-        .map_err(map_db)?
-        .into_iter()
-        .map(RecipeIngredient::from)
-        .collect();
+    recipe.kcal_per_serving = crate::nutrition::recipe_kcal_map(pool)
+        .await?
+        .get(&recipe.id)
+        .copied();
+    let ing_rows = sqlx::query(
+        "SELECT ri.*, p.kcal_per_100g, p.grams_per_unit, p.default_unit, p.package_size, p.package_unit
+         FROM recipe_ingredients ri
+         LEFT JOIN products p ON p.id = ri.product_id
+         WHERE ri.recipe_id = ? ORDER BY ri.sort",
+    )
+    .bind(id)
+    .fetch_all(pool)
+    .await
+    .map_err(map_db)?;
+    let mut ingredients = Vec::new();
+    for row in ing_rows {
+        let quantity: f64 = row.get("quantity");
+        let unit: String = row.get("unit");
+        let kcal = crate::nutrition::kcal_from_row(&row, quantity, &unit);
+        let mut ing = RecipeIngredient::from(row);
+        ing.kcal = kcal;
+        ingredients.push(ing);
+    }
     let steps = sqlx::query("SELECT * FROM recipe_steps WHERE recipe_id = ? ORDER BY step_number")
         .bind(id)
         .fetch_all(pool)

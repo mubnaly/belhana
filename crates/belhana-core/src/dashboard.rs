@@ -52,6 +52,8 @@ pub struct TodayDish {
     /// dish | bread | adama | staple | salad | snack
     pub role: String,
     pub suggested: bool,
+    /// Estimated calories for one serving.
+    pub kcal_per_serving: Option<i64>,
 }
 
 struct PlannedToday {
@@ -143,6 +145,7 @@ fn dish(r: &recipes::Recipe, role: &str, suggested: bool) -> TodayDish {
         name_ar: r.name_ar.clone(),
         role: role.to_string(),
         suggested,
+        kcal_per_serving: r.kcal_per_serving,
     }
 }
 
@@ -282,6 +285,12 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
     // library. Rotation by day-of-year keeps suggestions varied but deterministic.
     let all_recipes = recipes::list_recipes(pool, hid, None, None, 500, 0).await?;
     let rotate = today().ordinal() as usize;
+    let kcal_for = |id: &str| {
+        all_recipes
+            .iter()
+            .find(|r| r.id == id)
+            .and_then(|r| r.kcal_per_serving)
+    };
     let mut today_table: Vec<TodayCourse> = Vec::new();
 
     // Breakfast: planned dish (or a suggested one) + bread + at least two adamas.
@@ -291,6 +300,7 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
         name_ar: p.name_ar.clone(),
         role: "dish".into(),
         suggested: false,
+        kcal_per_serving: kcal_for(&p.recipe_id),
     });
     if b_main.is_none() {
         b_main = pick_main(&all_recipes, "breakfast", rotate, &[]).map(|r| dish(r, "dish", true));
@@ -329,6 +339,7 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
         name_ar: p.name_ar.clone(),
         role: "dish".into(),
         suggested: false,
+        kcal_per_serving: kcal_for(&p.recipe_id),
     });
     if l_main.is_none() {
         l_main = pick_main(&all_recipes, "lunch", rotate, &[]).map(|r| dish(r, "dish", true));
@@ -369,6 +380,7 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
         name_ar: p.name_ar.clone(),
         role: "dish".into(),
         suggested: false,
+        kcal_per_serving: kcal_for(&p.recipe_id),
     });
     if d_main.is_none() {
         d_main = pick_main(&all_recipes, "dinner", rotate + 1, &[])

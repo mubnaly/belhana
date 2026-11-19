@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api, setAuth } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let email = '';
 	let password = '';
@@ -33,7 +34,7 @@
 
 <div class="page" style="max-width:420px; padding-top:6vh">
 	<header style="text-align:center; margin-bottom:1.5rem">
-		<div style="font-size:3rem">🌿</div>
+		<div style="color:var(--primary-dark); line-height:1"><Icon name="leaf" size={48} /></div>
 		<h1>{t('register')}</h1>
 	</header>
 
@@ -58,7 +59,7 @@
 	</div>
 
 	<p style="text-align:center">
-		<a href="/login">{t('login')} →</a>
+		<a href="/login">{t('login')} <Icon name="arrowRight" size={14} /></a>
 	</p>
 	<p style="text-align:center">
 		<button class="btn secondary small" onclick={toggleLang}>{lang === 'ar' ? 'English' : 'عربي'}</button>

@@ -12,6 +12,7 @@ pub mod imports;
 pub mod inventory;
 pub mod members;
 pub mod merchants;
+pub mod nutrition;
 pub mod occasions;
 pub mod planning;
 pub mod pricing;

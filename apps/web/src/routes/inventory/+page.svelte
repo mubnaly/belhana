@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import { kcalText } from '$lib/format.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let lots = [];
 	let locations = [];
@@ -113,7 +115,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">📦 {t('inventory')}</div>
+		<div class="brand"><Icon name="box" size={16} /> {t('inventory')}</div>
 		<div style="display:flex; gap:.5rem">
 			<button class="btn small" onclick={() => (showAdd = !showAdd)}>+ {t('addLot')}</button>
 			<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
@@ -145,39 +147,42 @@
 			{/if}
 			<div class="field-row">
 				<div>
-					<label>{t('quantity')}</label>
-					<input type="number" step="0.01" min="0" bind:value={form.quantity} />
+					<label for="belhana-field-1">{t('quantity')}</label>
+					<input type="number" step="0.01" min="0" bind:value={form.quantity} id="belhana-field-1"/>
 				</div>
 				<div>
-					<label>{t('unit')}</label>
-					<input bind:value={form.unit} placeholder="kg / l / piece" />
+					<label for="belhana-field-2">{t('unit')}</label>
+					<input bind:value={form.unit} placeholder="kg / l / piece" id="belhana-field-2"/>
 				</div>
 			</div>
 			<div class="field-row">
 				<div>
-					<label>{t('locations')}</label>
-					<select bind:value={form.location_id}>
+					<label for="belhana-field-3">{t('locations')}</label>
+					<select bind:value={form.location_id} id="belhana-field-3">
 						<option value="">—</option>
 						{#each locations as loc}<option value={loc.id}>{loc.name_ar}</option>{/each}
 					</select>
 				</div>
 				<div>
-					<label>{t('expiryDate')}</label>
-					<input type="date" bind:value={form.expiry_date} />
+					<label for="belhana-field-4">{t('expiryDate')}</label>
+					<input type="date" bind:value={form.expiry_date} id="belhana-field-4"/>
 				</div>
 			</div>
-			<label>{t('amount')} ({lang === 'ar' ? 'قرش' : 'piasters'})</label>
-			<input type="number" bind:value={form.estimated_cost_minor} />
+			<label for="belhana-field-5">{t('amount')} ({lang === 'ar' ? 'قرش' : 'piasters'})</label>
+			<input type="number" bind:value={form.estimated_cost_minor} id="belhana-field-5"/>
 			<button class="btn" style="margin-top:.8rem" onclick={addLot} disabled={busy}>{t('add')}</button>
 		</div>
 	{/if}
 
 	{#if expiring.length > 0}
 		<div class="section">
-			<h3>⚠ {t('expiring')}</h3>
+			<h3><Icon name="warn" size={17} /> {t('expiring')}</h3>
 			{#each expiring as lot}
 				<div class="card row" style="padding:.7rem">
-					<span>{lot.product_name_ar} · {formatQty(lot.quantity, lot.unit)}</span>
+					<span>
+						{lot.product_name_ar} · {formatQty(lot.quantity, lot.unit)}
+						{#if lot.estimated_kcal}<br /><span class="kcal estimate">{kcalText(lot.estimated_kcal, lang)}</span>{/if}
+					</span>
 					<span class="chip warn">{lot.expiry_date}</span>
 				</div>
 			{/each}
@@ -185,13 +190,14 @@
 	{/if}
 
 	<div class="section">
-		<h3>📅 {t('leftovers')}</h3>
+		<h3><Icon name="calendar" size={17} /> {t('leftovers')}</h3>
 		<p class="muted">{lang === 'ar' ? 'ما لا يُستخدم هذا الأسبوع يبقى متاحًا للأسبوع القادم، وتستخدمه الخطة قبل الشراء مجددًا.' : 'What you do not use this week stays available next week, and the planner uses it before buying more.'}</p>
 		{#each leftovers as lot}
 			<div class="card row" style="padding:.7rem">
 				<span>
 					<b>{lot.product_name_ar}</b> · {formatQty(lot.quantity, lot.unit)}
-					<span class="chip ok">{t('useFirst')}</span>
+					<span class="chip ok"><Icon name="check" size={13} /> {t('useFirst')}</span>
+					{#if lot.estimated_kcal}<br /><span class="kcal estimate">{kcalText(lot.estimated_kcal, lang)}</span>{/if}
 				</span>
 				<button class="btn secondary small" onclick={() => toggleCarry(lot)}>{t('stopCarryOver')}</button>
 			</div>
@@ -218,6 +224,7 @@
 					{#if lot.carry_over}<span class="chip ok">{t('carryOver')}</span>{/if}<br />
 					{#if lot.expiry_date}<span class="muted">{t('expiryDate')}: {lot.expiry_date}</span>{/if}
 					{#if lot.estimated_cost_minor}<span class="muted"> · {money(lot.estimated_cost_minor)}</span>{/if}
+					{#if lot.estimated_kcal}<br /><span class="kcal estimate">{kcalText(lot.estimated_kcal, lang)}</span>{/if}
 				</span>
 				<span style="display:flex; gap:.3rem">
 					<button class="btn secondary small" onclick={() => consume(lot)}>{t('consume')}</button>

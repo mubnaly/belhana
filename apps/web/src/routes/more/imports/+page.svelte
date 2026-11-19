@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api, money } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let lang = getLang();
 	$: lang = $langStore;
@@ -158,7 +159,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">📥 {t('imports')}</div>
+		<div class="brand"><Icon name="inbox" size={16} /> {t('imports')}</div>
 		<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
 	</header>
 
@@ -166,7 +167,7 @@
 
 	{#if current}
 		<!-- ===== batch review view ===== -->
-		<button class="btn small" onclick={closeBatch}>← {lang === 'ar' ? 'رجوع' : 'Back'}</button>
+		<button class="btn small" onclick={closeBatch}><Icon name="arrowLeft" size={16} /> {lang === 'ar' ? 'رجوع' : 'Back'}</button>
 
 		<div class="card" style="margin-top:.6rem">
 			<h3>{lang === 'ar' ? 'دفعة أسعار' : 'Price batch'} <span class="chip {statusClass(current.batch_status)}">{current.batch_status}</span></h3>
@@ -177,10 +178,10 @@
 
 			<div>
 				<button class="chip" style="cursor:pointer" onclick={() => confirmDate(false)}>
-					✔ {lang === 'ar' ? 'تأكيد تاريخ البوست' : 'Confirm post date'}
+					<Icon name="check" size={14} /> {lang === 'ar' ? 'تأكيد تاريخ البوست' : 'Confirm post date'}
 				</button>
 				<button class="chip bad" style="cursor:pointer" onclick={() => confirmDate(true)}>
-					✖ {lang === 'ar' ? 'رفض التاريخ' : 'Reject date'}
+					<Icon name="x" size={14} /> {lang === 'ar' ? 'رفض التاريخ' : 'Reject date'}
 				</button>
 			</div>
 
@@ -229,8 +230,8 @@
 								<td><span class="chip {statusClass(o.review_status)}">{statusName(o.review_status)}</span></td>
 								<td>
 									<div class="row">
-										<button class="chip ok" style="cursor:pointer" onclick={() => review(o, 'verify')}>✔ {t('verify')}</button>
-										<button class="chip bad" style="cursor:pointer" onclick={() => review(o, 'reject')}>✖ {t('reject')}</button>
+										<button class="chip ok" style="cursor:pointer" onclick={() => review(o, 'verify')}><Icon name="check" size={14} /> {t('verify')}</button>
+										<button class="chip bad" style="cursor:pointer" onclick={() => review(o, 'reject')}><Icon name="x" size={14} /> {t('reject')}</button>
 									</div>
 									{#if o.review_status === 'needs_unit_confirmation'}
 										<select
@@ -290,7 +291,7 @@
 					{#if preview.original_date_text}<span class="muted"> ({preview.original_date_text})</span>{/if}
 				</p>
 				{#if preview.weekday_mismatch}
-					<div class="notice">⚠ {lang === 'ar' ? 'يوم الأسبوع في النص لا يطابق التاريخ — يؤكدها المستخدم' : 'Weekday word does not match the date — confirm by hand'}</div>
+					<div class="notice"><Icon name="warn" size={16} /> {lang === 'ar' ? 'يوم الأسبوع في النص لا يطابق التاريخ — يؤكدها المستخدم' : 'Weekday word does not match the date — confirm by hand'}</div>
 				{/if}
 				<table class="table">
 					<thead><tr><th>{lang === 'ar' ? 'البند' : 'Item'}</th><th>{t('price')}</th><th>{lang === 'ar' ? 'ملاحظات' : 'Flags'}</th></tr></thead>

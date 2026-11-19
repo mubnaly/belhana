@@ -53,32 +53,44 @@ async fn seed_products(pool: &SqlitePool) -> Result<(), belhana_common::CommonEr
         .map(|r| (r.get::<String, _>("slug"), r.get::<String, _>("id")))
         .collect();
     for p in seed_data::PRODUCTS {
-        if catalog::find_by_arabic_name(pool, p.name_ar).await?.is_some() {
-            continue;
-        }
-        let category_id = cats
-            .iter()
-            .find(|(slug, _)| slug == p.category)
-            .map(|(_, id)| id.clone());
-        catalog::create_product(
-            pool,
-            &catalog::CreateProduct {
-                category_id,
-                name_ar: p.name_ar.to_string(),
-                name_en: p.name_en.map(|s| s.to_string()),
-                default_unit: p.default_unit.map(|s| s.to_string()),
-                comparison_unit: None,
-                package_size: p.package_size,
-                package_unit: p.package_unit.map(|s| s.to_string()),
-                brand: None,
-                aliases: p
-                    .aliases
-                    .as_ref()
-                    .map(|v| v.iter().map(|s| s.to_string()).collect()),
-                notes: None,
-            },
-        )
-        .await?;
+        let (kcal, grams) = seed_data::product_nutrition(p.category, p.name_ar, p.default_unit);
+        let product_id = if let Some(existing) = catalog::find_by_arabic_name(pool, p.name_ar).await? {
+            existing.id
+        } else {
+            let category_id = cats
+                .iter()
+                .find(|(slug, _)| slug == p.category)
+                .map(|(_, id)| id.clone());
+            catalog::create_product(
+                pool,
+                &catalog::CreateProduct {
+                    category_id,
+                    name_ar: p.name_ar.to_string(),
+                    name_en: p.name_en.map(|s| s.to_string()),
+                    default_unit: p.default_unit.map(|s| s.to_string()),
+                    comparison_unit: None,
+                    package_size: p.package_size,
+                    package_unit: p.package_unit.map(|s| s.to_string()),
+                    brand: None,
+                    aliases: p
+                        .aliases
+                        .as_ref()
+                        .map(|v| v.iter().map(|s| s.to_string()).collect()),
+                    notes: None,
+                },
+            )
+            .await?
+            .id
+        };
+        // Estimates are refreshed on every start so improved catalog values
+        // reach existing databases without duplicating products.
+        sqlx::query("UPDATE products SET kcal_per_100g = ?, grams_per_unit = ? WHERE id = ?")
+            .bind(kcal)
+            .bind(grams)
+            .bind(product_id)
+            .execute(pool)
+            .await
+            .map_err(belhana_core::map_db)?;
     }
     Ok(())
 }

@@ -6,7 +6,7 @@ use belhana_common::CommonError;
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 
-use crate::{catalog, costing, households::Household, inventory, map_db, new_id, now_rfc3339, planning, pricing, today};
+use crate::{catalog, costing, households::Household, inventory, map_db, new_id, nutrition, now_rfc3339, planning, pricing, today};
 use belhana_common::units::universal_convert_str;
 
 #[derive(Debug, Serialize)]
@@ -47,19 +47,33 @@ pub struct ShoppingItem {
     pub purchased: bool,
     pub status: String,
     pub notes: Option<String>,
+    /// Estimated calories for the proposed shopping quantity.
+    pub estimated_kcal: Option<i64>,
 }
 
 impl From<sqlx::sqlite::SqliteRow> for ShoppingItem {
     fn from(r: sqlx::sqlite::SqliteRow) -> Self {
+        let required_qty: f64 = r.get("required_qty");
+        let required_unit: String = r.get("required_unit");
+        let shopping_qty: f64 = r.get::<Option<f64>, _>("shopping_qty").unwrap_or(0.0);
+        let shopping_unit: String = r
+            .get::<Option<String>, _>("shopping_unit")
+            .unwrap_or_else(|| required_unit.clone());
+        let (kcal_qty, kcal_unit) = if shopping_qty > 0.0 {
+            (shopping_qty, shopping_unit.as_str())
+        } else {
+            (required_qty, required_unit.as_str())
+        };
+        let estimated_kcal = nutrition::kcal_from_row(&r, kcal_qty, kcal_unit);
         ShoppingItem {
             id: r.get("id"),
             product_id: r.get("product_id"),
             product_name_ar: r.get("product_name_ar"),
-            required_qty: r.get("required_qty"),
-            required_unit: r.get("required_unit"),
+            required_qty,
+            required_unit,
             stock_qty: r.get::<Option<f64>, _>("stock_qty").unwrap_or(0.0),
-            shopping_qty: r.get::<Option<f64>, _>("shopping_qty").unwrap_or(0.0),
-            shopping_unit: r.get::<Option<String>, _>("shopping_unit").unwrap_or_default(),
+            shopping_qty,
+            shopping_unit,
             package_size: r.get("package_size"),
             package_unit: r.get("package_unit"),
             estimated_unit_price_minor: r.get("estimated_unit_price_minor"),
@@ -73,6 +87,7 @@ impl From<sqlx::sqlite::SqliteRow> for ShoppingItem {
             purchased: r.get::<i64, _>("purchased") != 0,
             status: r.get("status"),
             notes: r.get("notes"),
+            estimated_kcal,
         }
     }
 }
@@ -258,7 +273,9 @@ pub async fn get_list(pool: &SqlitePool, household_id: &str, id: &str) -> Result
         .ok_or_else(|| CommonError::NotFound("shopping list".into()))?;
     let mut list = list_from_row(row);
     let items = sqlx::query(
-        "SELECT i.*, p.name_ar AS product_name_ar FROM shopping_list_items i
+        "SELECT i.*, p.name_ar AS product_name_ar, p.kcal_per_100g, p.grams_per_unit,
+                p.default_unit
+         FROM shopping_list_items i
          JOIN products p ON p.id = i.product_id
          WHERE i.list_id = ? AND i.status != 'removed' ORDER BY i.sort",
     )

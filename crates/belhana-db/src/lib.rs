@@ -54,6 +54,10 @@ pub const MIGRATIONS: &[(&str, &str)] = &[
         "0011_guidance_and_purchasing",
         include_str!("../../../database/migrations/sqlite/0011_guidance_and_purchasing.sql"),
     ),
+    (
+        "0012_product_nutrition",
+        include_str!("../../../database/migrations/sqlite/0012_product_nutrition.sql"),
+    ),
 ];
 
 pub async fn open_pool(database_url: &str) -> Result<SqlitePool, sqlx::Error> {

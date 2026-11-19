@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.2.5 — 2026-11-19 (estimated calories, light/dark notes & monochrome icons)
+
+### Added
+- Estimated calories across the whole app. Migration `0012_product_nutrition` adds `kcal_per_100g`
+  and `grams_per_unit` to `products`, seeded from editorial category defaults with named overrides
+  (idempotently, like the rest of the catalog). New `belhana_core::nutrition` helpers (`grams_for`,
+  `kcal_for`, `kcal_from_row`, `recipe_kcal_map`) compute calories from ingredient quantities and
+  product nutrition rather than storing them as facts.
+- Calories now surface everywhere they matter: recipe cards, recipe detail and ingredient rows,
+  planned meal slots, today's table, quick basics, shopping items, inventory/stock lots, expiring
+  stock, plan inventory usage and the dashboard. Every value is clearly marked as an estimate with
+  `≈` and an “estimated” label (`kcalEstimate`); no verified nutrition, prices or stock is invented.
+- A matching **light** “notes on the wall” theme alongside the dark one. Both keep the same cartoon
+  sticky-note language (dotted wall, taped/tilted notes, ruled lines, sticker chips, offset shadows)
+  with warm-cream-paper and charcoal/teal-plus-amber palettes respectively. Dark is not a generic
+  purple. A floating toggle in the app bar persists the choice to `localStorage` (`belhana.theme`),
+  restored by an early script in `app.html` to avoid a flash of the wrong theme.
+- Reusable inline-SVG `Icon.svelte` set: every path draws with `currentColor`, so icons are
+  single-color in both themes. All colored emoji were replaced across every screen (including login,
+  register, settings, family, prices and imports) with these icons, and like/dislike preferences use
+  icon buttons with proper labels.
+
+### Changed
+- Today's table is now a responsive, side-by-side grid of sticky-note cards (`auto-fit`/`minmax`)
+  with tape and tilt details; the same note treatment is applied throughout the app. All note cards
+  reflow cleanly from phone to desktop.
+- Form controls are programmatically associated with their labels (48 labels bound across the app),
+  and the `mealTypes` checkbox group uses a labelled field group. The Svelte build is now free of
+  accessibility warnings.
+
+### Fixed
+- Removed the CSS `::before` estimate glyph that duplicated the `≈` already emitted by `kcalText()`;
+  estimates now show a single `≈`.
+- Removed the dashed underlines from plan slots.
+
+### Verified
+- API smoke check: recipes 5/5 with kcal; dashboard ordered breakfast → morning snack → lunch →
+  afternoon snack → dinner; shopping 12 items (11 with kcal); inventory lot `estimated_kcal = 2040`;
+  plan 6/6 slots with kcal.
+- Browser checks on `/`, `/recipes`, `/plan`, `/shopping`, `/inventory` and `/more` in both themes:
+  no emoji, no dashed borders, 0 bad (non-`currentColor`) icons, no console errors, estimate labels
+  present, theme toggle works, note grid is responsive, and recipe-modal ingredient calories render.
+- `cargo test --workspace` passes 23 tests; `npm run build` in `apps/web` is clean.
+
 ## 0.2.4 — 2026-11-19 (dark wall theme & cleaner recent prices)
 
 ### Added

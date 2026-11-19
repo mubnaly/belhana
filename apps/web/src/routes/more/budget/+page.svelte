@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api, money } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let status = null;
 	let history = [];
@@ -50,7 +51,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">💰 {t('budget')}</div>
+		<div class="brand"><Icon name="money" size={16} /> {t('budget')}</div>
 		<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
 	</header>
 
@@ -61,7 +62,7 @@
 	{:else if !status}
 		<div class="card">
 			<p>{lang === 'ar' ? 'لا توجد ميزانية أسبوعية مضبوطة بعد.' : 'No weekly budget configured yet.'}</p>
-			<a href="/more/settings" class="btn">{t('settings')} →</a>
+			<a href="/more/settings" class="btn"><Icon name="arrowRight" size={16} /> {t('settings')}</a>
 		</div>
 	{:else}
 		<div class="grid2">
@@ -102,11 +103,11 @@
 		{/if}
 
 		<div class="card">
-			<h3>🧮 {t('whatIf')}</h3>
+			<h3><Icon name="chart" size={17} /> {t('whatIf')}</h3>
 			<div class="field-row">
 				<div>
-					<label>{t('newBudget')} ({lang === 'ar' ? 'جنيه' : 'EGP'})</label>
-					<input type="number" bind:value={newBudget} min="0" />
+					<label for="belhana-field-1">{t('newBudget')} ({lang === 'ar' ? 'جنيه' : 'EGP'})</label>
+					<input type="number" bind:value={newBudget} min="0" id="belhana-field-1"/>
 				</div>
 				<div style="align-self:end">
 					<button class="btn" onclick={runWhatIf} disabled={busy}>{t('generate')}</button>
@@ -116,7 +117,11 @@
 				<div class="notice">
 					{lang === 'ar' ? 'تكلفة الخطة المتوقعة لـ' : 'Estimated plan cost for'} {whatif.days} {t('days')}:
 					<b>{moneyf(whatif.estimated_total_minor)}</b> —
-					{whatif.fits_budget ? (lang === 'ar' ? '✔ داخل الميزانية' : '✔ fits the budget') : (lang === 'ar' ? '⚠ يتجاوز الميزانية' : '⚠ exceeds the budget')}
+					{#if whatif.fits_budget}
+						<Icon name="check" size={15} /> {lang === 'ar' ? 'داخل الميزانية' : 'fits the budget'}
+					{:else}
+						<Icon name="warn" size={15} /> {lang === 'ar' ? 'يتجاوز الميزانية' : 'exceeds the budget'}
+					{/if}
 				</div>
 			{/if}
 		</div>

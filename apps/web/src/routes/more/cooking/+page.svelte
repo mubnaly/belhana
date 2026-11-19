@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let guides = [];
 	let err = '';
@@ -38,7 +39,7 @@
 				quantity: qty,
 				unit: ing.unit ?? 'kg'
 			});
-			alert(lang === 'ar' ? 'أُضيف للمخزن ✔' : 'Added to stock ✔');
+			alert(lang === 'ar' ? 'أُضيف للمخزن' : 'Added to stock');
 		} catch (e) {
 			err = e.message;
 		}
@@ -47,7 +48,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">🫕 {t('cooking')}</div>
+		<div class="brand"><Icon name="pot" size={16} /> {t('cooking')}</div>
 		<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
 	</header>
 
@@ -65,7 +66,7 @@
 						<b>{g.title_ar}</b>
 						<span class="muted">· {g.batch_size_text ?? ''}{g.portions ? ' · ' + g.portions + (lang === 'ar' ? ' حصة' : ' portions') : ''}</span>
 					</div>
-					<button class="btn secondary small" onclick={() => convert(g)}>📦 {t('convertToInventory')}</button>
+					<button class="btn secondary small" onclick={() => convert(g)}><Icon name="box" size={15} /> {t('convertToInventory')}</button>
 				</div>
 				<details style="margin-top:.4rem">
 					<summary class="muted" style="cursor:pointer">{lang === 'ar' ? 'التفاصيل' : 'Details'}</summary>
@@ -87,7 +88,7 @@
 							<li>{lang === 'ar' ? 'إعادة تسخين' : 'Reheat'}: {g.storage.reheat}</li>
 						</ul>
 						{#if g.safety_source}
-							<p class="muted">📚 {g.safety_source} ({g.safety_source_date})</p>
+							<p class="muted"><Icon name="book" size={14} /> {g.safety_source} ({g.safety_source_date})</p>
 						{/if}
 					{/if}
 				</details>

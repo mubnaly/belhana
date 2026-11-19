@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { getLang, t, toggleLang, langStore } from '$lib/i18n.js';
 	import { isAuthed, getAuth, api, logout, formatQty } from '$lib/api.js';
+	import { kcalText } from '$lib/format.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let lang = getLang();
 	$: lang = $langStore;
@@ -55,18 +57,25 @@
 	}
 
 	function roleIcon(role, name = '') {
-		if (role === 'bread') return '🥖';
-		if (role === 'salad') return '🥗';
-		if (role === 'staple') return '🍚';
-		if (role === 'snack') return name.includes('خضار') || name.includes('Vegetable') ? '🥕' : '🍎';
-		if (role === 'adama') return '🥣';
-		return '🍽️';
+		if (role === 'bread') return 'bread';
+		if (role === 'salad') return 'salad';
+		if (role === 'staple') return 'rice';
+		if (role === 'snack') return name.includes('خضار') || name.includes('Vegetable') ? 'sprout' : 'apple';
+		if (role === 'adama') return 'bowl';
+		return 'plate';
+	}
+
+	// A course's calories are the sum of its dish and sides (estimates).
+	function courseKcal(course) {
+		const parts = [course.main, ...(course.sides ?? [])].filter(Boolean);
+		const total = parts.reduce((sum, p) => sum + (p.kcal_per_serving ?? 0), 0);
+		return total;
 	}
 </script>
 
 <div class="page">
 	<header class="topbar" style="margin: -1rem -1rem 1rem; width: calc(100% + 2rem)">
-		<div class="brand">🌿 {t('appName')}</div>
+		<div class="brand"><Icon name="leaf" size={16} /> {t('appName')}</div>
 		<div style="display:flex; gap:.5rem; align-items:center">
 			<button class="btn secondary small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
 			{#if authed}
@@ -87,52 +96,56 @@
 		<div class="error-msg">{err}</div>
 	{:else if data}
 		{#if data.suggestion}
-			<div class="notice">💡 {data.suggestion}</div>
+			<div class="notice"><Icon name="bulb" size={18} /><span>{data.suggestion}</span></div>
 		{/if}
 
 		<h2>{t('todayMenu')}</h2>
-		<div class="card">
-			{#if data.today_table.length === 0}
+		<p class="muted kcal-hint">{t('kcalEstimate')}</p>
+		{#if data.today_table.length === 0}
+			<div class="card">
 				<p class="muted">{t('empty')} — <a href="/plan">{t('generatePlan')}</a></p>
-			{:else}
+			</div>
+		{:else}
+			<div class="notes today-notes">
 				{#each data.today_table as course}
-					<div class="course">
-						<div class="course-head">
+					<section class="note today-note">
+						<div class="note-head">
 							<span class="chip">{t(course.key)}</span>
-							{#if course.prepared}<span class="chip ok">{t('cooked')}</span>{/if}
+							{#if course.prepared}<span class="chip ok"><Icon name="check" size={13} /> {t('cooked')}</span>{/if}
 							{#if course.suggested}<span class="chip warn">{t('suggested')}</span>{/if}
+							<span class="kcal estimate">{kcalText(courseKcal(course), lang)}</span>
 						</div>
 						{#if course.main}
 							<div class="course-line">
-								<span class="course-role">{roleIcon(course.main.role, course.main.name_ar)}</span>
+								<span class="course-role"><Icon name={roleIcon(course.main.role, course.main.name_ar)} size={18} /></span>
 								{#if course.main.recipe_id}
 									<a href={`/recipes?open=${course.main.recipe_id}`}>{course.main.name_ar}</a>
 								{:else}
 									<span>{course.main.name_ar}</span>
 								{/if}
-								{#if course.main.role !== 'dish'}<span class="muted">· {t(course.main.role)}</span>{/if}
+								<span class="kcal estimate">{kcalText(course.main.kcal_per_serving, lang)}</span>
 							</div>
 						{/if}
 						{#each course.sides as side}
 							<div class="course-line side">
-								<span class="course-role">{roleIcon(side.role, side.name_ar)}</span>
+								<span class="course-role"><Icon name={roleIcon(side.role, side.name_ar)} size={18} /></span>
 								{#if side.recipe_id}
 									<a href={`/recipes?open=${side.recipe_id}`}>{side.name_ar}</a>
 								{:else}
 									<span>{side.name_ar}</span>
 								{/if}
-								<span class="muted">· {t(side.role)}</span>
+								<span class="kcal estimate">{kcalText(side.kcal_per_serving, lang)}</span>
 							</div>
 						{/each}
-					</div>
+					</section>
 				{/each}
-				<p class="muted" style="margin:.15rem 0 .5rem">{t('sideSuggestHint')}</p>
-				<div class="row" style="margin-top:.7rem">
-					<span class="muted">{t('tapDishHint')}</span>
-					<a href="/recipes" class="btn small">{t('recipes')}</a>
-				</div>
-			{/if}
-		</div>
+			</div>
+			<p class="muted" style="margin:.15rem 0 .5rem">{t('sideSuggestHint')}</p>
+			<div class="row" style="margin-top:.7rem">
+				<span class="muted">{t('tapDishHint')}</span>
+				<a href="/recipes" class="btn small">{t('recipes')}</a>
+			</div>
+		{/if}
 
 		{#if data.quick_basics?.length}
 			<h2>{t('quickBasics')}</h2>
@@ -141,9 +154,9 @@
 				<div class="basics-grid">
 					{#each data.quick_basics as b}
 						<a class="basic-item" href={`/recipes?open=${b.recipe_id}`}>
-							<span class="basic-icon">{roleIcon(b.role, b.name_ar)}</span>
+							<span class="basic-icon"><Icon name={roleIcon(b.role, b.name_ar)} size={22} /></span>
 							<span class="basic-name">{b.name_ar}</span>
-							<span class="muted">{t(b.role)}</span>
+							<span class="kcal estimate">{kcalText(b.kcal_per_serving, lang)}</span>
 						</a>
 					{/each}
 				</div>
@@ -182,7 +195,10 @@
 			<div class="card">
 				{#each data.expiring_stock as lot}
 					<div class="row" style="padding:.3rem 0">
-						<span>{lot.product_name_ar} — {formatQty(lot.quantity, lot.unit)}</span>
+						<span>
+							{lot.product_name_ar} — {formatQty(lot.quantity, lot.unit)}
+							{#if lot.estimated_kcal}<br /><span class="kcal estimate">{kcalText(lot.estimated_kcal, lang)}</span>{/if}
+						</span>
 						<span class="chip warn">{lot.expiry_date}</span>
 					</div>
 				{/each}
@@ -193,46 +209,51 @@
 		{#if data.recent_prices.length > 0}
 			<h2>{t('recentPrices')}</h2>
 			<div class="card">
-				<table class="table">
-					<thead><tr><th>{t('product')}</th><th>{t('amount')}</th><th>{t('observationDate')}</th></tr></thead>
-					<tbody>
-						{#each data.recent_prices as p}
-							<tr>
-								<td>{p.product_name_ar}</td>
-								<td>{p.amount_minor != null ? money(p.amount_minor) : '—'} {unitLabel(p.unit)}</td>
-								<td><span class="chip {p.review_status === 'verified' ? 'ok' : 'warn'}">{t(p.review_status)}</span> {p.observation_date ?? ''}</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
+				<div class="table-wrap">
+					<table class="table">
+						<thead><tr><th>{t('product')}</th><th>{t('amount')}</th><th>{t('observationDate')}</th></tr></thead>
+						<tbody>
+							{#each data.recent_prices as p}
+								<tr>
+									<td>{p.product_name_ar}</td>
+									<td>{p.amount_minor != null ? money(p.amount_minor) : '—'} {unitLabel(p.unit)}</td>
+									<td><span class="chip {p.review_status === 'verified' ? 'ok' : 'warn'}">{t(p.review_status)}</span> {p.observation_date ?? ''}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
 			</div>
 		{/if}
 	{/if}
 </div>
 
 <style>
-	.course {
-		padding: 0.55rem 0;
-		border-bottom: 1px dashed var(--border);
+	.kcal-hint {
+		margin-top: -0.45rem;
 	}
 
-	.course:last-of-type {
-		border-bottom: none;
-	}
-
-	.course-head {
+	.today-note {
 		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-		flex-wrap: wrap;
-		margin-bottom: 0.25rem;
+		flex-direction: column;
+		gap: 0.15rem;
 	}
 
 	.course-line {
 		display: flex;
-		align-items: baseline;
+		align-items: center;
 		gap: 0.4rem;
 		padding: 0.12rem 0;
+		min-width: 0;
+	}
+
+	.course-line a,
+	.course-line span:not(.kcal):not(.course-role) {
+		overflow-wrap: anywhere;
+	}
+
+	.course-line .kcal {
+		margin-inline-start: auto;
 	}
 
 	.course-line.side {
@@ -240,8 +261,10 @@
 	}
 
 	.course-role {
-		font-size: 1rem;
+		display: inline-flex;
+		flex-shrink: 0;
 		line-height: 1.2;
+		color: var(--primary-dark);
 	}
 
 	.basics-grid {
@@ -256,11 +279,16 @@
 		align-items: flex-start;
 		gap: 0.1rem;
 		padding: 0.55rem 0.65rem;
-		border: 1px solid var(--border);
-		border-radius: 12px;
-		background: var(--surface);
+		border: 2px solid var(--border-strong);
+		border-radius: 8px 14px 8px 13px;
+		background: var(--surface-2);
 		color: var(--text);
 		text-decoration: none;
+		box-shadow: 2px 3px 0 rgba(96, 76, 45, 0.12);
+	}
+
+	:global([data-theme='dark']) .basic-item {
+		box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.3);
 	}
 
 	.basic-item:hover {
@@ -268,7 +296,7 @@
 	}
 
 	.basic-icon {
-		font-size: 1.3rem;
+		display: inline-flex;
 		line-height: 1.1;
 	}
 

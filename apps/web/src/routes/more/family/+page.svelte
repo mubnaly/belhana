@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let members = [];
 	let prefsByMember = {};
@@ -163,7 +164,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">👨‍👩‍👧‍👦 {t('family')}</div>
+		<div class="brand"><Icon name="family" size={16} /> {t('family')}</div>
 		<div style="display:flex; gap:.5rem">
 			<button class="btn small" onclick={() => (showAdd = !showAdd)}>+ {t('addMember')}</button>
 			<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
@@ -174,10 +175,10 @@
 
 	{#if showAdd}
 		<div class="card">
-			<label>{t('name')}</label>
-			<input bind:value={form.display_name} />
-			<label>{t('ageBand')}</label>
-			<select bind:value={form.age_band}>
+			<label for="belhana-field-1">{t('name')}</label>
+			<input bind:value={form.display_name} id="belhana-field-1"/>
+			<label for="belhana-field-2">{t('ageBand')}</label>
+			<select bind:value={form.age_band} id="belhana-field-2">
 				<option value="child">child</option>
 				<option value="teen">teen</option>
 				<option value="adult">adult</option>
@@ -194,32 +195,32 @@
 			<div class="card">
 				<div class="row">
 					<span><b>{m.display_name}</b> <span class="muted">· {m.age_band}</span></span>
-					<button class="btn secondary small" onclick={() => removeMember(m.id)}>🗑</button>
+					<button class="btn secondary small" onclick={() => removeMember(m.id)} title={t('delete')} aria-label={t('delete')}><Icon name="trash" size={15} /></button>
 				</div>
 
 				<!-- preferences -->
-				<h3 style="margin-top:.7rem">👍 {t('preferences')}</h3>
+				<h3 style="margin-top:.7rem"><Icon name="thumbsUp" size={17} /> {t('preferences')}</h3>
 				{#each prefsByMember[m.id] ?? [] as p}
 					<div class="row" style="padding:.2rem 0">
-						<span class="chip">{p.kind === 'like' ? '👍' : '👎'} {p.text_value}</span>
-						<button class="btn secondary small" onclick={() => removePref(m.id, p.id)}>×</button>
+						<span class="chip"><Icon name={p.kind === 'like' ? 'thumbsUp' : 'thumbsDown'} size={14} /> {p.text_value}</span>
+						<button class="btn secondary small" onclick={() => removePref(m.id, p.id)} title={t('delete')} aria-label={t('delete')}><Icon name="x" size={14} /></button>
 					</div>
 				{/each}
 				<div class="field-row" style="margin-top:.3rem">
-					<select bind:value={prefForm.kind} style="flex:0 0 auto; width:auto">
-						<option value="like">👍</option>
-						<option value="dislike">👎</option>
+					<select bind:value={prefForm.kind} style="flex:0 0 auto; width:auto" aria-label={t('preferences')}>
+						<option value="like">{t('like')}</option>
+						<option value="dislike">{t('dislike')}</option>
 					</select>
 					<input placeholder={t('preferences') + '…'} bind:value={prefForm.text_value} />
 					<button class="btn small" onclick={() => addPref(m.id)}>+</button>
 				</div>
 
 				<!-- allergies -->
-				<h3 style="margin-top:.7rem">⚠ {t('allergies')}</h3>
+				<h3 style="margin-top:.7rem"><Icon name="warn" size={17} /> {t('allergies')}</h3>
 				{#each allergiesByMember[m.id] ?? [] as a}
 					<div class="row" style="padding:.2rem 0">
 						<span class="chip bad">{a.allergen} ({a.severity})</span>
-						<button class="btn secondary small" onclick={() => removeAllergy(m.id, a.id)}>×</button>
+						<button class="btn secondary small" onclick={() => removeAllergy(m.id, a.id)} title={t('delete')} aria-label={t('delete')}><Icon name="x" size={14} /></button>
 					</div>
 				{/each}
 				<div class="field-row" style="margin-top:.3rem">
@@ -232,12 +233,12 @@
 		{#if members.length === 0}<p class="muted">{t('empty')}</p>{/if}
 
 		<div class="section">
-			<h3>🚫 {t('exclusions')}</h3>
+			<h3><Icon name="ban" size={17} /> {t('exclusions')}</h3>
 			<div class="card">
 				{#each exclusions as x}
 					<div class="row" style="padding:.2rem 0">
 						<span>{x.product_id} {x.reason ? '· ' + x.reason : ''}</span>
-						<button class="btn secondary small" onclick={() => removeExclusion(x.id)}>×</button>
+						<button class="btn secondary small" onclick={() => removeExclusion(x.id)} title={t('delete')} aria-label={t('delete')}><Icon name="x" size={14} /></button>
 					</div>
 				{/each}
 				<div class="field-row" style="margin-top:.4rem">

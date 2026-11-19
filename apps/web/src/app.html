@@ -1,10 +1,29 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="light">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#1a7f4b" />
+		<meta name="theme-color" content="#f3ead8" />
 		<title>بالهنا</title>
+		<script>
+			// Pick the saved theme (or the system preference) before first paint.
+			(function () {
+				try {
+					var saved = localStorage.getItem('belhana.theme');
+					var theme =
+						saved === 'light' || saved === 'dark'
+							? saved
+							: window.matchMedia('(prefers-color-scheme: dark)').matches
+								? 'dark'
+								: 'light';
+					document.documentElement.dataset.theme = theme;
+					var meta = document.querySelector('meta[name="theme-color"]');
+					if (meta) meta.setAttribute('content', theme === 'dark' ? '#12191b' : '#f3ead8');
+				} catch (e) {
+					document.documentElement.dataset.theme = 'light';
+				}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

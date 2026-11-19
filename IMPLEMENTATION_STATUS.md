@@ -8,12 +8,12 @@ it deliberately does not claim unverified integrations.
 | Component | State | Evidence |
 | --- | --- | --- |
 | `belhana-common` | ✅ | 8 unit tests; money is integer piasters |
-| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (11 files, incl. `0011_guidance_and_purchasing`) |
+| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (12 files, incl. `0011_guidance_and_purchasing`, `0012_product_nutrition`) |
 | `belhana-auth` | ✅ | 2 tests; Argon2 + JWT access/refresh rotation |
 | `belhana-core` | ✅ | 13 tests; domains implemented against SQLite (incl. package-price tests) |
 | `belhana-ai` | ✅ | provider abstraction, tool schemas, proposal guardrails; instruction rules in system prompt; no live API key tested |
 | `apps/api` | ✅ | ~85 route declarations in 17 modules; startup migrate + seed; healthz |
-| `apps/web` | ✅ | 16 Svelte screens (incl. meal tips), Arabic RTL/English, static build + browser E2E pass |
+| `apps/web` | ✅ | 16 Svelte screens (incl. meal tips), Arabic RTL/English, light/dark sticky-note themes, monochrome SVG icons, static build clean (no a11y warnings) + browser E2E pass |
 | `apps/desktop` | 🟡 | Tauri 2 shell compiles (`cargo check`); WebView2 required to launch the Windows binary |
 | `workers/maintenance_worker` | ✅ | `--once` sweep ran clean (stale prices, expiry reminders, pruning) |
 
@@ -48,14 +48,42 @@ it deliberately does not claim unverified integrations.
 23. ✅ Recipes reachable from the bottom navigation; the home page shows a structured daily table
     (breakfast, morning snack, lunch, afternoon snack, dinner) with bread, side dishes, rice/salad and
     snack components, plus quick homemade basics such as bread.
+24. ✅ Estimated calories on every product/item and meal — recipes and their ingredients, plan slots,
+    today's table, quick basics, shopping items and inventory/stock lots — computed from editorial
+    per-product nutrition and always labelled as estimates (`≈` / `kcalEstimate`).
+
+## Estimated calories, light/dark notes & monochrome icons (2026-11-19)
+
+Migration `0012_product_nutrition` adds `kcal_per_100g` and `grams_per_unit` to `products`, seeded from
+category defaults with named overrides in an idempotent refresh. `belhana_core::nutrition`
+(`grams_for`, `kcal_for`, `kcal_from_row`, `recipe_kcal_map`) derives calories from ingredient
+quantities and product nutrition rather than storing them as verified facts; recipe calories are
+computed, not asserted. UI surfaces (`kcalText()` in `format.js`) prefixes every value with `≈` and an
+“estimated” label so no invented nutrition is presented as measured.
+
+The web now ships **two** matching cartoon “notes on the wall” themes — a warm-cream light palette and
+a charcoal/teal-plus-amber dark palette (not generic purple). Both keep the same sticky-note language:
+dotted wall, taped/tilted notes, ruled lines, sticker chips and offset shadows. Today's table is a
+responsive `auto-fit` grid of side-by-side note cards; all note cards reflow from phone to desktop, and
+plan slots no longer have dashed underlines. A floating bar toggle persists `belhana.theme` in
+`localStorage`, restored early in `app.html`. `Icon.svelte` provides single-color inline SVGs (all paths
+use `currentColor`) and has replaced every colored emoji across all screens; like/dislike preferences
+use labelled icon buttons.
+
+Verified: API smoke check (recipes 5/5 with kcal; dashboard course order breakfast → morning snack →
+lunch → afternoon snack → dinner; shopping 12 items / 11 with kcal; inventory lot
+`estimated_kcal = 2040`; plan 6/6 slots with kcal); browser checks on `/`, `/recipes`, `/plan`,
+`/shopping`, `/inventory` and `/more` in both themes (no emoji, no dashed borders, 0 bad icons, no
+console errors, estimate labels present, responsive note grid, recipe-modal ingredient kcal visible).
+`cargo test --workspace` passes 23 tests and the Svelte production build is clean with no warnings.
 
 ## Dark wall theme and recent-price cleanup (2026-11-19)
 
-The web UI now uses a single dark cartoon theme: a deep dotted "wall" background, sticky-note cards
-taped at the top with a small tilt, ruled paper lines, hard offset shadows, outlined sticker buttons,
-marker strokes under section titles, dark inputs and a dark bottom navigation. Cards straighten and
-transitions stop under `prefers-reduced-motion`. All screens share the global `app.css`, so no page
-markup changed for the theme.
+The dark cartoon theme introduced here — a deep dotted "wall" background, sticky-note cards taped at
+the top with a small tilt, ruled paper lines, hard offset shadows, outlined sticker buttons, marker
+strokes under section titles, dark inputs and a dark bottom navigation — was later joined by a
+matching light theme and a user toggle (see the estimated-calories section above). Cards straighten
+and transitions stop under `prefers-reduced-motion`. All screens share the global `app.css`.
 
 The dashboard's recent-prices block now keeps only the latest observation per product, so repeated
 entries for the same item no longer fill the list. Units and review status are localized in Arabic
@@ -153,7 +181,8 @@ cleanly. (At MVP delivery `cargo test --workspace` passed 20 tests; it now passe
 - No live Gemini/OpenAI key was available; provider response shapes are based on documented APIs and
   should be smoke-tested with a real key before enabling in production.
 - Facebook/Meta API, OCR import, CSV/Excel import, Android/iOS builds and offline sync are not built.
-- Frontend has non-blocking Svelte accessibility warnings (form labels not programmatically bound).
+- Frontend form labels are programmatically bound and the Svelte build has no accessibility warnings;
+  a full WCAG audit has not been performed.
 - `JWT_SECRET` defaults to a development value; must be overridden in any deployment.
 
 ## Decision / constraint notes

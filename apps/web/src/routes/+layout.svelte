@@ -2,8 +2,10 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
-	import { getLang, t, toggleLang, onLang, setLang } from '$lib/i18n.js';
-	import { loadAuth, isAuthed, getAuth } from '$lib/api.js';
+	import { getLang, t, onLang, setLang, langStore } from '$lib/i18n.js';
+	import { themeStore, toggleTheme, getTheme } from '$lib/theme.js';
+	import { loadAuth, isAuthed } from '$lib/api.js';
+	import Icon from '$lib/Icon.svelte';
 	import '../app.css';
 
 	let { children } = $props();
@@ -13,6 +15,7 @@
 	if (browser) loadAuth();
 
 	let lang = $state(getLang());
+	let theme = $state(getTheme());
 	let authed = $state(isAuthed());
 
 	// Navigation (login/logout/goto) re-evaluates auth without a full reload.
@@ -24,6 +27,10 @@
 	onMount(() => {
 		setLang(getLang());
 		onLang((l) => (lang = l));
+		const unsubscribe = themeStore.subscribe((value) => (theme = value));
+		return () => {
+			unsubscribe();
+		};
 	});
 
 	// Pass `lang` so Svelte tracks the label as language-dependent; `t` itself
@@ -33,12 +40,12 @@
 	}
 
 	const nav = [
-		{ href: '/', icon: '🏠', key: 'home' },
-		{ href: '/plan', icon: '📅', key: 'plan' },
-		{ href: '/recipes', icon: '🍲', key: 'recipes' },
-		{ href: '/shopping', icon: '🛒', key: 'shopping' },
-		{ href: '/inventory', icon: '📦', key: 'inventory' },
-		{ href: '/more', icon: '⋯', key: 'more' }
+		{ href: '/', icon: 'home', key: 'home' },
+		{ href: '/plan', icon: 'calendar', key: 'plan' },
+		{ href: '/recipes', icon: 'pot', key: 'recipes' },
+		{ href: '/shopping', icon: 'cart', key: 'shopping' },
+		{ href: '/inventory', icon: 'box', key: 'inventory' },
+		{ href: '/more', icon: 'dots', key: 'more' }
 	];
 </script>
 
@@ -50,12 +57,22 @@
 	{@render children()}
 {/key}
 
+<button
+	class="theme-toggle"
+	onclick={toggleTheme}
+	aria-label={t('theme')}
+	title={`${t('theme')}: ${theme === 'dark' ? t('themeDark') : t('themeLight')}`}
+>
+	<Icon name={theme === 'dark' ? 'sun' : 'moon'} size={20} />
+</button>
+
 {#if authed}
-<nav class="bottomnav" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-	{#each nav as n}
-		<a href={n.href} class:active={page.url.pathname === n.href} onclick={() => (authed = isAuthed())}>
-			<span class="icon">{n.icon}</span>{label(n.key, lang)}
-		</a>
-	{/each}
-</nav>
+	<nav class="bottomnav" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+		{#each nav as n}
+			<a href={n.href} class:active={page.url.pathname === n.href} onclick={() => (authed = isAuthed())}>
+				<span class="icon"><Icon name={n.icon} size={19} /></span>
+				{label(n.key, lang)}
+			</a>
+		{/each}
+	</nav>
 {/if}

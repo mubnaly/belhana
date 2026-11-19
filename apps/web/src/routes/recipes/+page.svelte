@@ -3,6 +3,8 @@
 	import { page } from '$app/state';
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import { kcalText } from '$lib/format.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let recipes = [];
 	let err = '';
@@ -201,7 +203,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">🍲 {t('recipes')}</div>
+		<div class="brand"><Icon name="pot" size={16} /> {t('recipes')}</div>
 		<div style="display:flex; gap:.5rem">
 			<button class="btn small" onclick={() => (showForm = !showForm)}>+ {t('addRecipe')}</button>
 			<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
@@ -213,23 +215,23 @@
 	{#if showForm}
 		<div class="card">
 			<h3>{t('addRecipe')}</h3>
-			<label>{t('name')} (عربي)</label>
-			<input bind:value={form.name_ar} />
+			<label for="belhana-field-1">{t('name')} (عربي)</label>
+			<input bind:value={form.name_ar} id="belhana-field-1"/>
 			<div class="field-row">
 				<div>
-					<label>{t('prepTime')}</label>
-					<input type="number" bind:value={form.prep_minutes} />
+					<label for="belhana-field-2">{t('prepTime')}</label>
+					<input type="number" bind:value={form.prep_minutes} id="belhana-field-2"/>
 				</div>
 				<div>
-					<label>{t('cookTime')}</label>
-					<input type="number" bind:value={form.cook_minutes} />
+					<label for="belhana-field-3">{t('cookTime')}</label>
+					<input type="number" bind:value={form.cook_minutes} id="belhana-field-3"/>
 				</div>
 				<div>
-					<label>{t('servings')}</label>
-					<input type="number" bind:value={form.default_servings} />
+					<label for="belhana-field-4">{t('servings')}</label>
+					<input type="number" bind:value={form.default_servings} id="belhana-field-4"/>
 				</div>
 			</div>
-			<label>{t('mealTypes')}</label>
+			<div class="field-label">{t('mealTypes')}</div>
 			<div style="display:flex; gap:.8rem; flex-wrap:wrap">
 				{#each ['breakfast', 'lunch', 'dinner', 'snack', 'dessert'] as mt}
 					<label style="display:flex; align-items:center; gap:.3rem; margin:0">
@@ -242,10 +244,10 @@
 			<h3 style="margin-top:1rem">{t('ingredients')}</h3>
 			{#each form.ingredients as ing, i}
 				<div class="field-row" style="align-items:end">
-					<div style="flex:2"><label>{t('product')}</label><input bind:value={ing.product_name} /></div>
-					<div><label>{t('quantity')}</label><input type="number" step="0.01" bind:value={ing.quantity} /></div>
-					<div><label>{t('unit')}</label><input bind:value={ing.unit} /></div>
-					<button class="btn secondary small" onclick={() => form.ingredients.splice(i, 1)}>×</button>
+					<div style="flex:2"><label for="belhana-field-5">{t('product')}</label><input bind:value={ing.product_name} id="belhana-field-5"/></div>
+					<div><label for="belhana-field-6">{t('quantity')}</label><input type="number" step="0.01" bind:value={ing.quantity} id="belhana-field-6"/></div>
+					<div><label for="belhana-field-7">{t('unit')}</label><input bind:value={ing.unit} id="belhana-field-7"/></div>
+					<button class="btn secondary small" onclick={() => form.ingredients.splice(i, 1)} title={t('delete')} aria-label={t('delete')}><Icon name="x" size={14} /></button>
 				</div>
 			{/each}
 			<button class="btn secondary small" style="margin:.4rem 0" onclick={() => form.ingredients.push({ product_name: '', quantity: 1, unit: 'kg' })}>+ {t('addIngredient')}</button>
@@ -254,7 +256,7 @@
 			{#each form.steps as st, i}
 				<div class="field-row" style="align-items:end">
 					<textarea rows="2" bind:value={st.text_ar}></textarea>
-					<button class="btn secondary small" onclick={() => form.steps.splice(i, 1)}>×</button>
+					<button class="btn secondary small" onclick={() => form.steps.splice(i, 1)} title={t('delete')} aria-label={t('delete')}><Icon name="x" size={14} /></button>
 				</div>
 			{/each}
 			<button class="btn secondary small" style="margin:.4rem 0" onclick={() => form.steps.push({ text_ar: '' })}>+ {t('addStep')}</button>
@@ -264,21 +266,20 @@
 	{/if}
 
 	<div class="card" style="margin-bottom:.8rem">
-		<label style="margin-top:0">{t('searchMeals')}</label>
+		<label style="margin-top:0" for="belhana-field-8">{t('searchMeals')}</label>
 		<div style="display:flex; gap:.5rem">
 			<input
 				value={search}
 				oninput={(e) => onSearchInput(e.currentTarget.value)}
 				onkeydown={(e) => e.key === 'Enter' && submitSearch()}
-				placeholder="🔍 {t('searchMeals')}"
-				style="margin:0"
-			/>
-			<button class="btn small" onclick={submitSearch} aria-label={t('search')}>🔍</button>
+				placeholder={t('searchMeals')}
+				style="margin:0" id="belhana-field-8"/>
+			<button class="btn small" onclick={submitSearch} aria-label={t('search')}><Icon name="search" size={17} /></button>
 		</div>
 		<div class="row" style="margin-top:.5rem; align-items:flex-start">
 			<p class="muted" style="margin:0">{t('searchHint')}</p>
 			<button class="btn small {savedOnly ? '' : 'secondary'}" onclick={toggleSavedOnly}>
-				⭐ {savedOnly ? t('allRecipes') : `${t('savedOnly')} (${savedCount})`}
+				<Icon name="star" size={15} /> {savedOnly ? t('allRecipes') : `${t('savedOnly')} (${savedCount})`}
 			</button>
 		</div>
 	</div>
@@ -286,7 +287,7 @@
 	{#if loading}
 		<p class="muted">{t('loading')}</p>
 	{:else if searching}
-		<p class="muted">⏳ {t('searching')}</p>
+		<p class="muted"><Icon name="clock" size={15} /> {t('searching')}</p>
 	{:else}
 		{#if searchedTerm && !savedOnly}
 			<p class="muted">{recipes.length} {t('resultsCount')}</p>
@@ -318,11 +319,12 @@
 						}}
 						onkeydown={(e) => e.stopPropagation()}
 					>
-						{saved[r.id] ? '★' : '☆'}
+						<Icon name={saved[r.id] ? 'star-filled' : 'star'} size={17} />
 					</button>
 					<div class="v" style="font-size:.95rem">{r.name_ar}</div>
 					<div class="k">{r.meal_types.map((m) => t(m)).join(' · ')}</div>
 					<div class="k">{r.difficulty} · {r.prep_minutes + r.cook_minutes}{lang === 'ar' ? ' د' : 'm'}</div>
+					<div class="k kcal estimate">{kcalText(r.kcal_per_serving, lang)}</div>
 				</div>
 			{/each}
 		</div>
@@ -330,12 +332,12 @@
 		{#if visible.length === 0}
 			{#if searchedTerm && !savedOnly}
 				<div class="card" style="text-align:center; margin-top:.8rem">
-					<div style="font-size:2rem">🍽️</div>
+					<div class="empty-icon"><Icon name="plate" size={38} /></div>
 					<h3 style="margin:.3rem 0">{t('mealNotFound')}</h3>
 					<p class="muted">«{searchedTerm}»</p>
 					<p class="muted">{t('mealNotFoundHint')}</p>
 					<div style="display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap">
-						<button class="btn secondary" onclick={searchWeb}>🌐 {t('searchWeb')}</button>
+						<button class="btn secondary" onclick={searchWeb}><Icon name="globe" size={16} /> {t('searchWeb')}</button>
 						<button class="btn" onclick={addMissing}>+ {t('addMissing')}</button>
 					</div>
 					<p class="muted" style="margin-top:.5rem">{t('addMissingHint')}</p>
@@ -347,7 +349,12 @@
 	{/if}
 
 	{#if detail}
-		<div class="modal-bg" onclick={(e) => (e.target === e.currentTarget ? (detail = null) : null)}>
+		<div
+		class="modal-bg"
+		role="presentation"
+		onclick={(e) => (e.target === e.currentTarget ? (detail = null) : null)}
+		onkeydown={(e) => e.key === 'Escape' && (detail = null)}
+	>
 			<div class="modal">
 				<div class="row">
 					<h2>{detail.recipe.name_ar}</h2>
@@ -358,16 +365,22 @@
 							title={saved[detail.recipe.id] ? t('removeSaved') : t('saveLocally')}
 							onclick={() => toggleSaved(detail.recipe)}
 						>
-							{saved[detail.recipe.id] ? '★' : '☆'}
+							<Icon name={saved[detail.recipe.id] ? 'star-filled' : 'star'} size={17} />
 						</button>
-						<button class="btn secondary small" onclick={() => (detail = null)}>×</button>
+						<button class="btn secondary small" onclick={() => (detail = null)} aria-label={t('cancel')}><Icon name="x" size={16} /></button>
 					</div>
 				</div>
 				{#if detail.recipe.description}<p class="muted">{detail.recipe.description}</p>{/if}
 
 				<div class="row" style="margin:.5rem 0">
-					<label style="margin:0">{t('servings')}</label>
-					<input type="number" min="1" max="20" bind:value={servings} style="width:80px" onchange={cost} />
+					<label style="margin:0" for="belhana-field-9">{t('servings')}</label>
+					<input type="number" min="1" max="20" bind:value={servings} style="width:80px" onchange={cost} id="belhana-field-9"/>
+				</div>
+
+				<div class="kcal-detail">
+					<span class="kcal estimate" title={t('kcalEstimate')}>{kcalText(detail.recipe.kcal_per_serving, lang)}</span>
+					{#if !detail.recipe.kcal_per_serving}<span class="muted">{t('kcalUnknown')}</span>{/if}
+					<span class="muted">{t('perServing')}</span>
 				</div>
 
 				{#if detail.cost}
@@ -376,14 +389,17 @@
 						<div class="stat"><div class="v">{money(detail.cost.per_serving_minor)}</div><div class="k">{t('perServing')}</div></div>
 					</div>
 					{#if detail.cost.unknown_count > 0}
-						<p class="muted">⚠ {detail.cost.unknown_count} {lang === 'ar' ? 'مكونات بدون سعر معروف' : 'ingredients without known price'}</p>
+						<p class="muted"><Icon name="warn" size={15} /> {detail.cost.unknown_count} {lang === 'ar' ? 'مكونات بدون سعر معروف' : 'ingredients without known price'}</p>
 					{/if}
 				{/if}
 
 				<h3>{t('ingredients')}</h3>
-				<ul>
+				<ul class="ingredient-list">
 					{#each detail.ingredients as ing}
-						<li>{ing.raw_name_ar ?? ing.product_id} — {formatQty(ing.quantity, ing.unit)}{ing.optional ? ' (' + t('optional') + ')' : ''}</li>
+						<li>
+							<span>{ing.raw_name_ar ?? ing.product_id} — {formatQty(ing.quantity, ing.unit)}{ing.optional ? ' (' + t('optional') + ')' : ''}</span>
+							{#if ing.kcal}<span class="kcal estimate">{kcalText(ing.kcal, lang)}</span>{/if}
+						</li>
 					{/each}
 				</ul>
 
@@ -406,6 +422,42 @@
 	.meal-card {
 		position: relative;
 		padding-top: 1.7rem;
+	}
+
+	.empty-icon {
+		display: inline-flex;
+		color: var(--muted);
+		margin-top: 0.3rem;
+	}
+
+	.kcal-detail {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		flex-wrap: wrap;
+		background: var(--surface-2);
+		border-radius: 10px;
+		padding: 0.35rem 0.6rem;
+		margin-bottom: 0.3rem;
+	}
+
+	.ingredient-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.ingredient-list li {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.2rem 0;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.ingredient-list li:last-child {
+		border-bottom: none;
 	}
 
 	.star-btn {

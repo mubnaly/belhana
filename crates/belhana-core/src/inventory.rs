@@ -51,15 +51,24 @@ pub struct StockLot {
     pub created_at: String,
     pub product_name_ar: Option<String>,
     pub location_name: Option<String>,
+    /// Estimated calories for the quantity currently in stock.
+    pub estimated_kcal: Option<i64>,
 }
 
 fn lot_from_row_with(r: sqlx::sqlite::SqliteRow, with_names: bool) -> StockLot {
+    let quantity: f64 = r.get("quantity");
+    let unit: String = r.get("unit");
+    let estimated_kcal = if with_names {
+        crate::nutrition::kcal_from_row(&r, quantity, &unit)
+    } else {
+        None
+    };
     let mut lot = StockLot {
         id: r.get("id"),
         household_id: r.get("household_id"),
         product_id: r.get("product_id"),
-        quantity: r.get("quantity"),
-        unit: r.get("unit"),
+        quantity,
+        unit,
         location_id: r.get("location_id"),
         purchase_date: r.get("purchase_date"),
         opened_date: r.get("opened_date"),
@@ -72,6 +81,7 @@ fn lot_from_row_with(r: sqlx::sqlite::SqliteRow, with_names: bool) -> StockLot {
         created_at: r.get("created_at"),
         product_name_ar: None,
         location_name: None,
+        estimated_kcal,
     };
     if with_names {
         lot.product_name_ar = r.try_get("product_name_ar").ok();
@@ -149,7 +159,8 @@ pub async fn list_lots(
     status: Option<&str>,
 ) -> Result<Vec<StockLot>, CommonError> {
     let mut sql = String::from(
-        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name
+        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name,
+                p.kcal_per_100g, p.grams_per_unit, p.default_unit
          FROM stock_lots l
          JOIN products p ON p.id = l.product_id
          LEFT JOIN storage_locations s ON s.id = l.location_id
@@ -178,7 +189,8 @@ pub async fn list_lots(
 
 pub async fn get_lot(pool: &SqlitePool, household_id: &str, id: &str) -> Result<StockLot, CommonError> {
     let row = sqlx::query(
-        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name
+        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name,
+                p.kcal_per_100g, p.grams_per_unit, p.default_unit
          FROM stock_lots l JOIN products p ON p.id = l.product_id
          LEFT JOIN storage_locations s ON s.id = l.location_id
          WHERE l.id = ? AND l.household_id = ?",
@@ -446,7 +458,8 @@ pub async fn list_leftovers(
     household_id: &str,
 ) -> Result<Vec<StockLot>, CommonError> {
     let rows = sqlx::query(
-        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name
+        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name,
+                p.kcal_per_100g, p.grams_per_unit, p.default_unit
          FROM stock_lots l JOIN products p ON p.id = l.product_id
          LEFT JOIN storage_locations s ON s.id = l.location_id
          WHERE l.household_id = ? AND l.status = 'active' AND l.quantity > 0 AND l.carry_over = 1
@@ -483,7 +496,8 @@ pub async fn expiring_soon(pool: &SqlitePool, household_id: &str, days: i64) -> 
         .format("%Y-%m-%d")
         .to_string();
     let rows = sqlx::query(
-        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name
+        "SELECT l.*, p.name_ar AS product_name_ar, s.name_ar AS location_name,
+                p.kcal_per_100g, p.grams_per_unit, p.default_unit
          FROM stock_lots l JOIN products p ON p.id = l.product_id
          LEFT JOIN storage_locations s ON s.id = l.location_id
          WHERE l.household_id = ? AND l.status = 'active' AND l.quantity > 0

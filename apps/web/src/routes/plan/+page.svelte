@@ -1,7 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
 	import { api, money, formatQty } from '$lib/api.js';
-	import { t, getLang, langStore } from '$lib/i18n.js';
+	import { t, getLang, langStore, toggleLang } from '$lib/i18n.js';
+	import { kcalText } from '$lib/format.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let plans = [];
 	let current = null;
@@ -85,11 +87,17 @@
 	function periodName(p) {
 		return t(p);
 	}
+
+	// Estimated calories for the whole planned slot (per serving × servings).
+	function slotKcal(slot) {
+		if (!slot.kcal_per_serving) return '';
+		return slot.kcal_per_serving * (slot.servings || 1);
+	}
 </script>
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">📅 {t('plan')}</div>
+		<div class="brand"><Icon name="calendar" size={16} /> {t('plan')}</div>
 		<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
 	</header>
 
@@ -119,7 +127,11 @@
 			<label style="display:flex; align-items:center; gap:.3rem; margin:0"><input type="checkbox" bind:checked={dinner} style="width:auto" /> {t('dinner')}</label>
 		</div>
 		<button class="btn" style="margin-top:1rem" onclick={generate} disabled={busy}>
-			{busy ? t('loading') : '✨ ' + t('generate')}
+			{#if busy}
+				{t('loading')}
+			{:else}
+				<Icon name="sparkles" size={16} /> {t('generate')}
+			{/if}
 		</button>
 	</div>
 
@@ -130,10 +142,10 @@
 			<span>
 				<b>{t('total')}: {money(current.total_cost_minor)}</b>
 				{#if current.conflicts.length > 0}
-					<div><span class="chip bad">⚠ {current.conflicts.length}</span></div>
+					<div><span class="chip bad"><Icon name="warn" size={14} /> {current.conflicts.length}</span></div>
 				{/if}
 			</span>
-			<button class="btn secondary small" onclick={makeShoppingList}>🛒 {t('shopping')}</button>
+			<button class="btn secondary small" onclick={makeShoppingList}><Icon name="cart" size={16} /> {t('shopping')}</button>
 		</div>
 
 		{#each current.slots as slot}
@@ -144,18 +156,19 @@
 						<span class="muted">{slot.date}</span>
 						<h3 style="margin:.3rem 0 0">{slot.recipe_name_ar}</h3>
 						<p class="muted" style="margin:.2rem 0 0">{slot.servings} × {t('perServing')} · {money(slot.cost_minor)}</p>
+						<p class="muted" style="margin:.2rem 0 0"><span class="kcal estimate">{kcalText(slotKcal(slot), lang)}</span> · {t('kcal')}</p>
 						{#if slot.missing.length > 0}
-							<p class="muted" style="margin:.2rem 0 0">🛒 {slot.missing.length} {lang === 'ar' ? 'عناصر للمشتريات' : 'items to buy'}</p>
+							<p class="muted" style="margin:.2rem 0 0"><Icon name="cart" size={14} /> {slot.missing.length} {lang === 'ar' ? 'عناصر للمشتريات' : 'items to buy'}</p>
 						{/if}
 					</div>
-					<button class="btn small" onclick={() => markPrepared(slot)}>✔ {t('markPrepared')}</button>
+					<button class="btn small" onclick={() => markPrepared(slot)}><Icon name="check" size={15} /> {t('markPrepared')}</button>
 				</div>
 				<details style="margin-top:.4rem">
 					<summary class="muted" style="cursor:pointer">{lang === 'ar' ? 'لماذا هذه الوجبة؟' : 'Why this meal?'}</summary>
 					<p class="muted" style="margin:.3rem 0 0">{slot.explanation}</p>
 					{#if slot.inventory_used.length > 0}
 						<p class="muted" style="margin:.2rem 0 0">
-							📦 {slot.inventory_used.map((u) => `${u.name_ar} ${formatQty(u.quantity, u.unit)}`).join('، ')}
+							<Icon name="box" size={14} /> {slot.inventory_used.map((u) => `${u.name_ar} ${formatQty(u.quantity, u.unit)}`).join('، ')}
 						</p>
 					{/if}
 				</details>

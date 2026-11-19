@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
+	import { kcalText, qty } from '$lib/format.js';
+	import Icon from '$lib/Icon.svelte';
 
 	let list = null;
 	let err = '';
@@ -27,13 +29,6 @@
 
 	function moneyf(minor) {
 		return money(minor);
-	}
-
-	// Quantities come back from SQLite REAL arithmetic (e.g. 1.5999999999999999 kg).
-	// Trim floating-point noise for display without changing the stored value.
-	function qty(n) {
-		if (n == null) return '';
-		return String(Math.round(Number(n) * 1000) / 1000);
 	}
 
 	async function setPurchased(item, purchased) {
@@ -71,7 +66,7 @@
 
 <div class="page">
 	<header class="topbar" style="margin:-1rem -1rem 1rem; width:calc(100% + 2rem)">
-		<div class="brand">🛒 {t('shopping')}</div>
+		<div class="brand"><Icon name="cart" size={16} /> {t('shopping')}</div>
 		<button class="btn small" onclick={toggleLang}>{lang === 'ar' ? 'EN' : 'عربي'}</button>
 	</header>
 
@@ -83,7 +78,7 @@
 		<div class="card">
 			<p>{t('empty')}</p>
 			<p class="muted">{lang === 'ar' ? 'ولّد خطة أسبوعية أولًا، ثم أنشئ قائمة المشتريات منها.' : 'Generate a weekly plan first, then create the shopping list from it.'}</p>
-			<a href="/plan" class="btn">{t('plan')} →</a>
+			<a href="/plan" class="btn"><Icon name="arrowRight" size={16} /> {t('plan')}</a>
 		</div>
 	{:else}
 		<div class="card row">
@@ -113,24 +108,25 @@
 									{formatQty(item.shopping_qty, item.shopping_unit)}
 								{/if}
 								{#if item.estimated_total_minor != null} · ~{moneyf(item.estimated_total_minor)}{/if}
+								{#if item.estimated_kcal}<br /><span class="kcal estimate">{kcalText(item.estimated_kcal, lang)}</span>{/if}
 								{#if item.price_freshness === 'stale'}<span class="chip warn">{t('stale')}</span>{/if}
 							</span>
 						</span>
 					</label>
-					<button class="btn secondary small" onclick={() => (showQty[item.id] = !showQty[item.id])}>✎</button>
+					<button class="btn secondary small" onclick={() => (showQty[item.id] = !showQty[item.id])} aria-label={t('edit')}><Icon name="pencil" size={15} /></button>
 				</div>
 
 				{#if showQty[item.id]}
 					<div class="field-row" style="margin-top:.5rem">
 						{#if !item.buy_by_amount_minor}
 							<div>
-								<label>{t('purchasedQty')}</label>
-								<input type="number" step="0.01" bind:value={item.purchased_qty} placeholder={qty(item.shopping_qty)} />
+								<label for="belhana-field-1">{t('purchasedQty')}</label>
+								<input type="number" step="0.01" bind:value={item.purchased_qty} placeholder={qty(item.shopping_qty)} id="belhana-field-1"/>
 							</div>
 						{/if}
 						<div>
-							<label>{t('actualPrice')} ({lang === 'ar' ? 'قرش' : 'piasters'})</label>
-							<input type="number" bind:value={item.actual_price_minor} placeholder={String(item.estimated_total_minor ?? '')} />
+							<label for="belhana-field-2">{t('actualPrice')} ({lang === 'ar' ? 'قرش' : 'piasters'})</label>
+							<input type="number" bind:value={item.actual_price_minor} placeholder={String(item.estimated_total_minor ?? '')} id="belhana-field-2"/>
 						</div>
 					</div>
 					<button class="btn small" style="margin-top:.5rem" onclick={() => updateItem(item)}>{t('save')}</button>
@@ -138,6 +134,6 @@
 			</div>
 		{/each}
 
-		<button class="btn block" onclick={completeTrip} disabled={busy}>🏁 {t('completeTrip')}</button>
+		<button class="btn block" onclick={completeTrip} disabled={busy}><Icon name="flag" size={17} /> {t('completeTrip')}</button>
 	{/if}
 </div>

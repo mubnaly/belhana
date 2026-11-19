@@ -1,29 +1,85 @@
-/* Belhana — dark "notes on the wall" cartoon theme.
+/* Belhana — "notes on the wall" cartoon theme, light and dark.
    One global stylesheet drives every screen: the wall is the page background,
-   cards are taped sticky notes, and controls are chunky outlined stickers. */
+   cards are taped sticky notes, and controls are chunky outlined stickers.
+   All icons are single-color SVGs inheriting `currentColor`. */
 
 :root {
-	color-scheme: dark;
+	color-scheme: light;
 
-	--bg: #171320;
-	--surface: #2c2536;
-	--surface-2: #362e43;
+	--bg: #f3ead8;
+	--glow-1: rgba(217, 142, 43, 0.16);
+	--glow-2: rgba(31, 122, 108, 0.12);
+	--dot: rgba(96, 76, 45, 0.14);
 
-	--primary: #ffcf5c;
-	--primary-dark: #ffe49a;
-	--primary-soft: rgba(255, 207, 92, 0.15);
+	--surface: #fffdf5;
+	--surface-2: #f3e8d2;
+	--note-line: rgba(120, 96, 60, 0.075);
+	--note-glow: rgba(255, 255, 255, 0.65);
+	--tape: rgba(217, 142, 43, 0.42);
 
-	--accent: #ff8f70;
-	--danger: #ff7f7f;
+	--primary: #d98e2b;
+	--primary-dark: #b06a14;
+	--primary-2: #f0b95f;
+	--primary-soft: rgba(217, 142, 43, 0.14);
 
-	--text: #f4ecdd;
-	--muted: #aca2ba;
-	--border: rgba(255, 255, 255, 0.14);
-	--border-strong: rgba(255, 255, 255, 0.22);
-	--ink: #140f1a;
+	--accent: #1f7a6c;
+	--accent-soft: rgba(31, 122, 108, 0.12);
+	--danger: #c7462f;
+	--danger-soft: rgba(199, 70, 47, 0.1);
+
+	--text: #2f2a22;
+	--muted: #7b7060;
+	--border: rgba(74, 60, 40, 0.16);
+	--border-strong: rgba(74, 60, 40, 0.3);
+	--ink: #241f18;
+
+	--topbar-bg: rgba(243, 234, 216, 0.88);
+	--nav-bg: rgba(250, 244, 232, 0.96);
+	--input-bg: #fbf3e3;
+	--scroll-track: #e8dcc4;
+	--scroll-thumb: #c0ab86;
 
 	--radius: 18px;
-	--shadow: 4px 5px 0 rgba(0, 0, 0, 0.42);
+	--shadow: 5px 6px 0 rgba(96, 76, 45, 0.18);
+}
+
+[data-theme='dark'] {
+	color-scheme: dark;
+
+	--bg: #12191b;
+	--glow-1: rgba(240, 180, 74, 0.12);
+	--glow-2: rgba(99, 199, 178, 0.1);
+	--dot: rgba(236, 229, 216, 0.075);
+
+	--surface: #1c272a;
+	--surface-2: #263538;
+	--note-line: rgba(236, 229, 216, 0.045);
+	--note-glow: rgba(255, 255, 255, 0.035);
+	--tape: rgba(240, 180, 74, 0.34);
+
+	--primary: #f0b44a;
+	--primary-dark: #ffd483;
+	--primary-2: #d99a2f;
+	--primary-soft: rgba(240, 180, 74, 0.15);
+
+	--accent: #63c7b2;
+	--accent-soft: rgba(99, 199, 178, 0.13);
+	--danger: #f2857a;
+	--danger-soft: rgba(242, 133, 122, 0.13);
+
+	--text: #ece5d8;
+	--muted: #a3b0b2;
+	--border: rgba(236, 229, 216, 0.12);
+	--border-strong: rgba(236, 229, 216, 0.24);
+	--ink: #0e1416;
+
+	--topbar-bg: rgba(18, 25, 27, 0.86);
+	--nav-bg: rgba(16, 23, 25, 0.96);
+	--input-bg: #172124;
+	--scroll-track: #16201f;
+	--scroll-thumb: #3c4d4d;
+
+	--shadow: 5px 6px 0 rgba(0, 0, 0, 0.42);
 }
 
 * {
@@ -39,9 +95,9 @@ body {
 	min-height: 100%;
 	background-color: var(--bg);
 	background-image:
-		radial-gradient(circle at 12% 6%, rgba(255, 207, 92, 0.1), transparent 42%),
-		radial-gradient(circle at 88% 92%, rgba(255, 143, 112, 0.09), transparent 44%),
-		radial-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1.4px);
+		radial-gradient(circle at 12% 6%, var(--glow-1), transparent 42%),
+		radial-gradient(circle at 88% 92%, var(--glow-2), transparent 44%),
+		radial-gradient(var(--dot) 1px, transparent 1.4px);
 	background-size: auto, auto, 22px 22px;
 	background-attachment: fixed;
 	overflow-x: clip;
@@ -49,6 +105,9 @@ body {
 	font-family: 'Segoe UI', Tahoma, 'Noto Naskh Arabic', Arial, sans-serif;
 	font-size: 15px;
 	line-height: 1.55;
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease;
 }
 
 ::selection {
@@ -70,25 +129,8 @@ h1 {
 }
 
 h2 {
-	position: relative;
-	display: table;
 	font-size: 1.15rem;
-	padding-bottom: 3px;
-}
-
-/* A short highlighter stroke under section titles, like a marker line. */
-h2::after {
-	content: '';
-	position: absolute;
-	inset-inline-start: 0;
-	bottom: -1px;
-	width: 58%;
-	max-width: 64px;
-	height: 5px;
-	border-radius: 4px;
-	background: var(--primary);
-	transform: rotate(-1.2deg);
-	opacity: 0.85;
+	margin-top: 0.4rem;
 }
 
 h3 {
@@ -96,30 +138,34 @@ h3 {
 }
 
 a {
-	color: var(--primary);
+	color: var(--primary-dark);
 	text-decoration: none;
 }
 
 a:not(.btn):not(.stat):not(.basic-item):hover {
-	text-decoration: underline wavy 1.5px;
-	text-underline-offset: 3px;
+	color: var(--accent);
 }
 
 /* --- Sticky-note cards --------------------------------------------------- */
 
-.card {
+.card,
+.note {
 	position: relative;
 	background-color: var(--surface);
 	background-image:
-		repeating-linear-gradient(
-			0deg,
-			transparent 0 27px,
-			rgba(255, 255, 255, 0.028) 27px 28px
-		),
-		linear-gradient(160deg, rgba(255, 255, 255, 0.045), transparent 55%);
+		repeating-linear-gradient(0deg, transparent 0 27px, var(--note-line) 27px 28px),
+		linear-gradient(160deg, var(--note-glow), transparent 55%);
 	border: 2px solid var(--border-strong);
 	border-radius: 6px 18px 8px 16px;
 	box-shadow: var(--shadow);
+	transition:
+		background-color 0.2s ease,
+		border-color 0.2s ease,
+		transform 0.15s ease,
+		box-shadow 0.15s ease;
+}
+
+.card {
 	padding: 1rem;
 	margin-bottom: 1.35rem;
 }
@@ -127,19 +173,16 @@ a:not(.btn):not(.stat):not(.basic-item):hover {
 /* Top-level cards are pinned to the wall: a paper strip of tape on top and a
    tiny tilt. Nested cards stay flat so dense lists remain readable. */
 .page > .card {
-	--tape: rgba(255, 207, 92, 0.5);
-	transform: rotate(-0.35deg);
+	transform: rotate(-0.3deg);
 	transform-origin: 50% 0;
 }
 
 .page > .card:nth-of-type(3n + 2) {
-	--tape: rgba(255, 143, 112, 0.45);
-	transform: rotate(0.4deg);
+	transform: rotate(0.35deg);
 }
 
 .page > .card:nth-of-type(3n) {
-	--tape: rgba(126, 224, 195, 0.4);
-	transform: rotate(-0.15deg);
+	transform: rotate(-0.12deg);
 }
 
 .page > .card::before {
@@ -151,19 +194,58 @@ a:not(.btn):not(.stat):not(.basic-item):hover {
 	height: 20px;
 	margin-inline-start: -37px;
 	background: var(--tape);
-	border: 1px solid rgba(255, 255, 255, 0.16);
+	border: 1px solid var(--border);
 	border-radius: 2px;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16);
 	transform: rotate(-2.5deg);
 	pointer-events: none;
 }
 
-.page > .card:nth-of-type(3n + 2)::before {
-	transform: rotate(2deg);
-}
-
 .card.row {
 	gap: 0.6rem;
+}
+
+/* A responsive wall of smaller notes (today's table, quick basics, ...). */
+.notes {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+	gap: 1rem;
+	align-items: stretch;
+	margin-bottom: 1.2rem;
+}
+
+.note {
+	padding: 0.85rem 0.9rem 0.95rem;
+	min-width: 0;
+}
+
+.note:nth-child(3n + 1) {
+	transform: rotate(-0.5deg);
+}
+
+.note:nth-child(3n + 2) {
+	transform: rotate(0.4deg);
+}
+
+.note:nth-child(3n) {
+	transform: rotate(-0.15deg);
+}
+
+.note:hover {
+	transform: translateY(-2px) rotate(0deg);
+	box-shadow: 6px 9px 0 rgba(96, 76, 45, 0.16);
+}
+
+[data-theme='dark'] .note:hover {
+	box-shadow: 6px 9px 0 rgba(0, 0, 0, 0.45);
+}
+
+.note-head {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin-bottom: 0.35rem;
 }
 
 /* --- Buttons: chunky cartoon stickers ------------------------------------ */
@@ -180,6 +262,7 @@ a:not(.btn):not(.stat):not(.basic-item):hover {
 	padding: 0.5rem 1rem;
 	font-size: 0.95rem;
 	font-weight: 700;
+	font-family: inherit;
 	cursor: pointer;
 	box-shadow: 0 3px 0 var(--ink);
 	transition:
@@ -189,7 +272,7 @@ a:not(.btn):not(.stat):not(.basic-item):hover {
 }
 
 .btn:hover {
-	background: var(--primary-dark);
+	background: var(--primary-2);
 	transform: translateY(-1px);
 	box-shadow: 0 4px 0 var(--ink);
 }
@@ -200,7 +283,7 @@ a:not(.btn):not(.stat):not(.basic-item):hover {
 }
 
 .btn:focus-visible {
-	outline: 3px solid rgba(255, 207, 92, 0.45);
+	outline: 3px solid var(--primary-soft);
 	outline-offset: 2px;
 }
 
@@ -213,11 +296,11 @@ a:not(.btn):not(.stat):not(.basic-item):hover {
 
 .btn.secondary {
 	background: var(--surface-2);
-	color: var(--primary-dark);
+	color: var(--text);
 }
 
 .btn.secondary:hover {
-	background: #413650;
+	background: var(--primary-soft);
 }
 
 .btn.danger {
@@ -226,7 +309,7 @@ a:not(.btn):not(.stat):not(.basic-item):hover {
 }
 
 .btn.danger:hover {
-	background: #ff9a9a;
+	background: var(--primary-2);
 }
 
 .btn.small {
@@ -246,17 +329,17 @@ select,
 textarea {
 	width: 100%;
 	padding: 0.55rem 0.7rem;
-	border: 2px solid #473c57;
+	border: 2px solid var(--border-strong);
 	border-radius: 12px;
 	font-size: 0.95rem;
 	font-family: inherit;
-	background: #211a2a;
+	background: var(--input-bg);
 	color: var(--text);
 }
 
 input::placeholder,
 textarea::placeholder {
-	color: #897e9b;
+	color: var(--muted);
 }
 
 option {
@@ -267,11 +350,12 @@ option {
 input:focus,
 select:focus,
 textarea:focus {
-	outline: 3px solid rgba(255, 207, 92, 0.22);
+	outline: 3px solid var(--primary-soft);
 	border-color: var(--primary);
 }
 
-label {
+label,
+.field-label {
 	display: block;
 	font-size: 0.85rem;
 	color: var(--muted);
@@ -286,14 +370,15 @@ label {
 
 .field-row > * {
 	flex: 1;
+	min-width: 0;
 }
 
 /* --- Messages ------------------------------------------------------------ */
 
 .error-msg {
-	background: rgba(255, 127, 127, 0.12);
-	color: #ffb3b3;
-	border: 2px solid rgba(255, 127, 127, 0.45);
+	background: var(--danger-soft);
+	color: var(--danger);
+	border: 2px solid color-mix(in srgb, var(--danger) 45%, transparent);
 	border-radius: 12px;
 	padding: 0.6rem 0.8rem;
 	margin: 0.6rem 0;
@@ -301,9 +386,12 @@ label {
 }
 
 .notice {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.45rem;
 	background: var(--primary-soft);
-	color: var(--primary-dark);
-	border: 2px dashed rgba(255, 207, 92, 0.5);
+	color: var(--text);
+	border: 2px dashed color-mix(in srgb, var(--primary) 50%, transparent);
 	border-radius: 12px;
 	padding: 0.6rem 0.8rem;
 	margin: 0.6rem 0;
@@ -311,6 +399,11 @@ label {
 }
 
 /* --- Tables -------------------------------------------------------------- */
+
+.table-wrap {
+	overflow-x: auto;
+	margin: 0 -0.2rem;
+}
 
 .table {
 	width: 100%;
@@ -322,7 +415,7 @@ label {
 .table td {
 	text-align: start;
 	padding: 0.45rem 0.5rem;
-	border-bottom: 1px dashed rgba(255, 255, 255, 0.16);
+	border-bottom: 1px solid var(--border);
 }
 
 .table th {
@@ -334,10 +427,12 @@ label {
 /* --- Sticker chips ------------------------------------------------------- */
 
 .chip {
-	display: inline-block;
-	background: #3b3352;
-	color: #ded3ff;
-	border: 1.5px solid #6c5da0;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	background: var(--surface-2);
+	color: var(--text);
+	border: 1.5px solid var(--border-strong);
 	border-radius: 999px;
 	padding: 0.12rem 0.62rem;
 	font-size: 0.78rem;
@@ -346,21 +441,38 @@ label {
 }
 
 .chip.warn {
-	background: rgba(255, 207, 92, 0.14);
-	color: #ffd98f;
-	border-color: rgba(255, 207, 92, 0.5);
+	background: var(--primary-soft);
+	color: var(--primary-dark);
+	border-color: color-mix(in srgb, var(--primary) 50%, transparent);
 }
 
 .chip.bad {
-	background: rgba(255, 127, 127, 0.13);
-	color: #ffb3b3;
-	border-color: rgba(255, 127, 127, 0.5);
+	background: var(--danger-soft);
+	color: var(--danger);
+	border-color: color-mix(in srgb, var(--danger) 50%, transparent);
 }
 
 .chip.ok {
-	background: rgba(126, 224, 195, 0.13);
-	color: #9df0d4;
-	border-color: rgba(126, 224, 195, 0.45);
+	background: var(--accent-soft);
+	color: var(--accent);
+	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+button.chip {
+	cursor: pointer;
+	font-family: inherit;
+}
+
+/* --- Calories ------------------------------------------------------------ */
+
+.kcal {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	color: var(--accent);
+	font-size: 0.78rem;
+	font-weight: 700;
+	white-space: nowrap;
 }
 
 /* --- Layout helpers ------------------------------------------------------ */
@@ -382,9 +494,9 @@ label {
 }
 
 .page {
-	max-width: 760px;
+	max-width: 920px;
 	margin: 0 auto;
-	padding: 1.3rem 1rem 5.5rem;
+	padding: 1rem 1rem 5.5rem;
 }
 
 /* --- Header -------------------------------------------------------------- */
@@ -392,16 +504,21 @@ label {
 .topbar {
 	position: sticky;
 	top: 0;
-	z-index: 10;
-	background: rgba(26, 21, 34, 0.9);
+	z-index: 30;
+	background: var(--topbar-bg);
 	backdrop-filter: blur(8px);
 	border-bottom: 2px solid var(--border);
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 	padding: 0.6rem 1rem;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+[data-theme='dark'] .topbar {
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 .brand {
@@ -419,6 +536,40 @@ label {
 	transform: rotate(-1.6deg);
 }
 
+/* --- Theme toggle -------------------------------------------------------- */
+
+.theme-toggle {
+	position: fixed;
+	inset-inline-end: 0.9rem;
+	bottom: calc(4.4rem + env(safe-area-inset-bottom));
+	z-index: 25;
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0;
+	border-radius: 999px;
+	background: var(--surface);
+	color: var(--text);
+	border: 2px solid var(--border-strong);
+	box-shadow: var(--shadow);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition:
+		transform 0.15s ease,
+		background 0.15s ease;
+}
+
+.theme-toggle:hover {
+	background: var(--primary-soft);
+	transform: translateY(-2px) rotate(-6deg);
+}
+
+.theme-toggle:focus-visible {
+	outline: 3px solid var(--primary-soft);
+	outline-offset: 2px;
+}
+
 /* --- Bottom navigation --------------------------------------------------- */
 
 .bottomnav {
@@ -428,9 +579,9 @@ label {
 	right: 0;
 	z-index: 20;
 	display: flex;
-	background: rgba(24, 19, 32, 0.97);
+	background: var(--nav-bg);
 	backdrop-filter: blur(8px);
-	border-top: 2px solid #3d3349;
+	border-top: 2px solid var(--border-strong);
 	padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -449,20 +600,20 @@ label {
 }
 
 .bottomnav a.active {
-	color: var(--primary);
+	color: var(--primary-dark);
 	font-weight: 700;
-	background: rgba(255, 207, 92, 0.1);
+	background: var(--primary-soft);
 }
 
 .bottomnav a.active .icon {
 	transform: translateY(-2px) rotate(-7deg) scale(1.12);
-	filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.5));
 }
 
 .bottomnav .icon {
-	display: block;
-	font-size: 1.1rem;
+	display: flex;
+	justify-content: center;
 	line-height: 1.2;
+	margin-bottom: 0.1rem;
 	transition: transform 0.15s;
 }
 
@@ -478,12 +629,12 @@ label {
 	display: block;
 	color: var(--text);
 	background-color: var(--surface);
-	background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 60%);
+	background-image: linear-gradient(160deg, var(--note-glow), transparent 60%);
 	border: 2px solid var(--border-strong);
 	border-radius: 7px 16px 9px 14px;
 	padding: 0.8rem;
 	text-align: center;
-	box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.4);
+	box-shadow: var(--shadow);
 	transition:
 		transform 0.15s ease,
 		box-shadow 0.15s ease;
@@ -491,19 +642,22 @@ label {
 
 .stat:hover {
 	transform: translateY(-3px) rotate(-0.7deg);
-	box-shadow: 4px 7px 0 rgba(0, 0, 0, 0.45);
+	box-shadow: 6px 9px 0 rgba(96, 76, 45, 0.16);
+}
+
+[data-theme='dark'] .stat:hover {
+	box-shadow: 6px 9px 0 rgba(0, 0, 0, 0.45);
 }
 
 .stat .v {
 	font-size: 1.25rem;
 	font-weight: 800;
-	color: var(--primary);
+	color: var(--text);
 }
 
 .stat .k {
 	font-size: 0.78rem;
-	color: var(--text);
-	opacity: 0.85;
+	color: var(--muted);
 }
 
 /* --- Progress ------------------------------------------------------------ */
@@ -511,7 +665,7 @@ label {
 .progress {
 	height: 12px;
 	border-radius: 999px;
-	background: #1c1624;
+	background: var(--surface-2);
 	border: 2px solid var(--border);
 	overflow: hidden;
 	margin: 0.45rem 0;
@@ -519,20 +673,12 @@ label {
 
 .progress > div {
 	height: 100%;
-	background: repeating-linear-gradient(
-		-45deg,
-		var(--primary) 0 8px,
-		#ffbd2e 8px 16px
-	);
+	background: repeating-linear-gradient(-45deg, var(--primary) 0 8px, var(--primary-2) 8px 16px);
 	border-radius: 999px;
 }
 
 .progress.over > div {
-	background: repeating-linear-gradient(
-		-45deg,
-		var(--danger) 0 8px,
-		#e85d5d 8px 16px
-	);
+	background: repeating-linear-gradient(-45deg, var(--danger) 0 8px, #e85d5d 8px 16px);
 }
 
 /* --- Modal --------------------------------------------------------------- */
@@ -540,7 +686,7 @@ label {
 .modal-bg {
 	position: fixed;
 	inset: 0;
-	background: rgba(9, 7, 13, 0.72);
+	background: rgba(18, 14, 10, 0.55);
 	backdrop-filter: blur(3px);
 	z-index: 50;
 	display: flex;
@@ -551,18 +697,14 @@ label {
 .modal {
 	background: var(--surface);
 	background-image:
-		repeating-linear-gradient(
-			0deg,
-			transparent 0 27px,
-			rgba(255, 255, 255, 0.028) 27px 28px
-		),
-		linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 55%);
+		repeating-linear-gradient(0deg, transparent 0 27px, var(--note-line) 27px 28px),
+		linear-gradient(160deg, var(--note-glow), transparent 55%);
 	width: 100%;
 	max-width: 560px;
 	border: 2px solid var(--border-strong);
 	border-bottom: none;
 	border-radius: 22px 22px 0 0;
-	box-shadow: 0 -10px 50px rgba(0, 0, 0, 0.6);
+	box-shadow: 0 -10px 50px rgba(0, 0, 0, 0.4);
 	padding: 1.2rem;
 	max-height: 88vh;
 	overflow-y: auto;
@@ -572,7 +714,7 @@ label {
 
 * {
 	scrollbar-width: thin;
-	scrollbar-color: #4c415c #1b1624;
+	scrollbar-color: var(--scroll-thumb) var(--scroll-track);
 }
 
 ::-webkit-scrollbar {
@@ -581,13 +723,39 @@ label {
 }
 
 ::-webkit-scrollbar-track {
-	background: #1b1624;
+	background: var(--scroll-track);
 }
 
 ::-webkit-scrollbar-thumb {
-	background: #4c415c;
+	background: var(--scroll-thumb);
 	border-radius: 999px;
-	border: 2px solid #1b1624;
+	border: 2px solid var(--scroll-track);
+}
+
+/* --- Responsive ---------------------------------------------------------- */
+
+@media (max-width: 560px) {
+	.page {
+		padding: 0.85rem 0.75rem 5.5rem;
+	}
+
+	.field-row {
+		flex-direction: column;
+	}
+
+	.notes {
+		grid-template-columns: 1fr;
+	}
+
+	h2 {
+		margin-top: 0.2rem;
+	}
+}
+
+@media (min-width: 900px) {
+	.notes {
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	}
 }
 
 @media (min-width: 640px) {
@@ -608,6 +776,7 @@ label {
 	}
 
 	.page > .card,
+	.note,
 	.stat {
 		transform: none !important;
 	}
