@@ -9,6 +9,12 @@ rust-version = "1.77"
 # compile the WebView toolchain just to run `cargo test --workspace`.
 [workspace]
 
+# Android builds link the Tauri runtime as a shared library. The Windows
+# binary stays in main.rs and shares the same app setup through this crate.
+[lib]
+name = "belhana_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

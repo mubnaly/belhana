@@ -120,9 +120,9 @@
 							<div class="course-line">
 								<span class="course-role"><Icon name={roleIcon(course.main.role, course.main.name_ar)} size={18} /></span>
 								{#if course.main.recipe_id}
-									<a href={`/recipes?open=${course.main.recipe_id}`}>{course.main.name_ar}</a>
+									<a class="dish-name" href={`/recipes?open=${course.main.recipe_id}`}>{course.main.name_ar}</a>
 								{:else}
-									<span>{course.main.name_ar}</span>
+									<span class="dish-name">{course.main.name_ar}</span>
 								{/if}
 								<span class="kcal estimate">{kcalText(course.main.kcal_per_serving, lang)}</span>
 								<MacroFacts macros={course.main.macros_per_serving} {lang} />
@@ -132,9 +132,9 @@
 							<div class="course-line side">
 								<span class="course-role"><Icon name={roleIcon(side.role, side.name_ar)} size={18} /></span>
 								{#if side.recipe_id}
-									<a href={`/recipes?open=${side.recipe_id}`}>{side.name_ar}</a>
+									<a class="dish-name" href={`/recipes?open=${side.recipe_id}`}>{side.name_ar}</a>
 								{:else}
-									<span>{side.name_ar}</span>
+									<span class="dish-name">{side.name_ar}</span>
 								{/if}
 								<span class="kcal estimate">{kcalText(side.kcal_per_serving, lang)}</span>
 								<MacroFacts macros={side.macros_per_serving} {lang} />
@@ -245,20 +245,32 @@
 	}
 
 	.course-line {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: start;
+		column-gap: 0.4rem;
+		row-gap: 0.1rem;
 		padding: 0.12rem 0;
 		min-width: 0;
 	}
 
-	.course-line a,
-	.course-line span:not(.kcal):not(.course-role) {
-		overflow-wrap: anywhere;
+	/* Wrap only between real words: never split a dish name mid-word just
+	   because the note is narrow. */
+	.course-line .dish-name {
+		min-width: 0;
+		overflow-wrap: normal;
+		word-break: normal;
+		hyphens: none;
 	}
 
 	.course-line .kcal {
-		margin-inline-start: auto;
+		grid-column: 3;
+		white-space: nowrap;
+	}
+
+	.course-line :global(.macro-facts) {
+		grid-column: 2 / -1;
+		margin-top: 0;
 	}
 
 	.course-line.side {
@@ -266,6 +278,7 @@
 	}
 
 	.course-role {
+		grid-column: 1;
 		display: inline-flex;
 		flex-shrink: 0;
 		line-height: 1.2;
@@ -308,5 +321,7 @@
 	.basic-name {
 		font-weight: 600;
 		font-size: 0.9rem;
+		overflow-wrap: normal;
+		word-break: normal;
 	}
 </style>

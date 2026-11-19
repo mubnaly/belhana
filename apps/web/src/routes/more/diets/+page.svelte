@@ -1,25 +1,50 @@
 <script>
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api.js';
+	import { api, getAuth, setHousehold } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 	import Icon from '$lib/Icon.svelte';
 
 	let data = null;
 	let err = '';
 	let loading = true;
-	let tab = 'micro';
+	let tab = 'diets';
 	let lang = getLang();
 	$: lang = $langStore;
+	let selectedDiet = null;
+	let savingDiet = false;
+	let dietSaved = false;
 
 	async function load() {
 		loading = true;
 		err = '';
 		try {
-			data = await api.get('/api/nutrition-guide');
+			const [guide, hh] = await Promise.all([
+				api.get('/api/nutrition-guide'),
+				api.get('/api/household').catch(() => null)
+			]);
+			data = guide;
+			selectedDiet = hh?.selected_diet_id || getAuth().household?.selected_diet_id || null;
 		} catch (e) {
 			err = e.message;
 		}
 		loading = false;
+	}
+
+	async function chooseDiet(id) {
+		const next = id || null;
+		if (next === selectedDiet) return;
+		savingDiet = true;
+		dietSaved = false;
+		err = '';
+		try {
+			const hh = await api.put('/api/household', { selected_diet_id: next });
+			setHousehold(hh);
+			selectedDiet = hh?.selected_diet_id || null;
+			dietSaved = true;
+		} catch (e) {
+			err = e.message;
+		}
+		savingDiet = false;
 	}
 
 	onMount(load);
@@ -44,6 +69,32 @@
 	{#if err}<div class="error-msg">{err}</div>{/if}
 	<p class="muted">{t('dietsHint')}</p>
 	<p class="muted"><Icon name="warn" size={14} /> {t('guidanceNote')}</p>
+
+	<div class="card" style="padding:.8rem">
+		<h3 style="margin:.1rem 0 .2rem"><Icon name="diet" size={16} /> {t('selectedDiet')}</h3>
+		<p class="muted" style="margin:.1rem 0 .5rem">{t('dietFilterNote')}</p>
+		<div style="display:flex; gap:.35rem; flex-wrap:wrap">
+			<button
+				class="chip {!selectedDiet ? 'ok' : ''}"
+				style="cursor:pointer"
+				disabled={savingDiet}
+				onclick={() => chooseDiet('')}
+			>
+				{!selectedDiet ? '✓ ' : ''}{t('allDiets')}
+			</button>
+			{#each data?.diets || [] as d}
+				<button
+					class="chip {selectedDiet === d.id ? 'ok' : ''}"
+					style="cursor:pointer"
+					disabled={savingDiet}
+					onclick={() => chooseDiet(d.id)}
+				>
+					{selectedDiet === d.id ? '✓ ' : ''}{txt(d.name)}
+				</button>
+			{/each}
+		</div>
+		{#if dietSaved}<p class="muted" style="margin:.5rem 0 0"><Icon name="check" size={14} /> {t('dietSaved')}</p>{/if}
+	</div>
 
 	<div class="card" style="padding:.6rem">
 		<div style="display:flex; gap:.3rem; flex-wrap:wrap">

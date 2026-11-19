@@ -250,7 +250,8 @@ pub async fn generate_menus(
         .map_err(map_db)?;
 
     let meal_type = event.meal_type.clone().unwrap_or_else(|| "lunch".into());
-    let all = recipes::list_recipes(pool, household_id, Some(&meal_type), None, 200, 0).await?;
+    let diet = crate::households::selected_diet_id(pool, household_id).await?;
+    let all = recipes::list_recipes(pool, household_id, Some(&meal_type), None, diet.as_deref(), 200, 0).await?;
     if all.is_empty() {
         return Err(CommonError::Validation(format!(
             "لا توجد وصفات مناسبة لنوع الوجبة {meal_type} — أضف وصفات أولا"

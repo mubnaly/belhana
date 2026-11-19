@@ -27,7 +27,7 @@
 		notes: ''
 	};
 
-	const statuses = ['unreviewed', 'needs_unit_confirmation', 'needs_date_confirmation', 'needs_product_mapping', 'verified', 'stale', 'rejected'];
+	const statuses = ['confirmed', 'unreviewed', 'needs_unit_confirmation', 'needs_date_confirmation', 'needs_product_mapping', 'verified', 'stale', 'rejected'];
 
 	async function load() {
 		loading = true;
@@ -142,6 +142,7 @@
 	</header>
 
 	{#if err}<div class="error-msg">{err}</div>{/if}
+	<p class="muted" style="margin:.1rem 0 .6rem"><Icon name="info" size={14} /> {t('confirmedHint')}</p>
 
 	{#if showForm}
 		<div class="card">
@@ -215,14 +216,14 @@
 						<b>{productName(o)}</b>
 						<span class="muted">· {moneyf(o.amount_minor)} {o.unit ?? ''}</span><br />
 						{#if o.package_size}<span class="muted">{t('packageSize')}: {o.package_size} {o.package_unit ?? ''} · </span>{/if}
-						<span class="chip {o.review_status === 'verified' ? 'ok' : o.review_status === 'rejected' ? 'bad' : 'warn'}">{t(o.review_status)}</span>
+						<span class="chip {o.review_status === 'verified' || o.review_status === 'confirmed' ? 'ok' : o.review_status === 'rejected' ? 'bad' : 'warn'}">{t(o.review_status)}</span>
 						{#if o.observation_date}<span class="muted">· {o.observation_date}</span>{/if}
 						{#if o.unit_status === 'unresolved'}<span class="chip bad">{lang === 'ar' ? 'وحدة غير محسومة' : 'unit unresolved'}</span>{/if}
 						{#if o.notes}<span class="muted">· {o.notes}</span>{/if}
 					</div>
 					<button class="btn secondary small" onclick={() => openEdit(o)}><Icon name="pencil" size={15} /> {t('edit')}</button>
 				</div>
-				{#if o.review_status !== 'verified' && o.review_status !== 'rejected'}
+				{#if o.review_status !== 'verified' && o.review_status !== 'confirmed' && o.review_status !== 'rejected'}
 					<div style="display:flex; gap:.4rem; margin-top:.5rem; flex-wrap:wrap">
 						<button class="btn small" onclick={() => review(o, 'verify')} disabled={busy}><Icon name="check" size={15} /> {t('verify')}</button>
 						<button class="btn danger small" onclick={() => review(o, 'reject')} disabled={busy}><Icon name="x" size={15} /> {t('reject')}</button>

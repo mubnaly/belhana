@@ -1,18 +1,51 @@
 // Belhana API client. The base URL is the backend server; during `vite dev`
 // requests go through the Vite proxy, in production to the configured origin.
 
-// Inside the Tauri WebView there is no Vite proxy; talk to the local API
-// server directly. The host page may override this with __BELHANA_API_BASE__.
-const TAURI_BASE =
-	typeof location !== 'undefined' && location.protocol === 'tauri:'
-		? 'http://127.0.0.1:8080'
-		: '';
+// Inside the Tauri WebView there is no Vite proxy; talk to the API directly.
+// Desktop uses 127.0.0.1; the Android emulator reaches the host on 10.0.2.2.
+// A physical phone can override this from Settings (belhana.apiBase).
+export function isTauri() {
+	if (typeof window === 'undefined') return false;
+	return Boolean(
+		window.__TAURI_INTERNALS__ ||
+			location.protocol === 'tauri:' ||
+			location.hostname === 'tauri.localhost'
+	);
+}
 
-const BASE =
-	(typeof window !== 'undefined' && window.__BELHANA_API_BASE__) ||
-	import.meta.env?.BELHANA_API_BASE ||
-	TAURI_BASE ||
-	'';
+function isAndroid() {
+	return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+}
+
+const TAURI_BASE = isTauri()
+	? isAndroid()
+		? 'http://10.0.2.2:8080'
+		: 'http://127.0.0.1:8080'
+	: '';
+
+function storedApiBase() {
+	if (typeof window === 'undefined') return '';
+	return window.localStorage.getItem('belhana.apiBase') || '';
+}
+
+export function getApiBase() {
+	return (
+		(typeof window !== 'undefined' && window.__BELHANA_API_BASE__) ||
+		storedApiBase() ||
+		import.meta.env?.BELHANA_API_BASE ||
+		TAURI_BASE ||
+		''
+	);
+}
+
+export function setApiBase(url) {
+	if (typeof window === 'undefined') return;
+	const value = String(url || '').trim().replace(/\/$/, '');
+	if (value) window.localStorage.setItem('belhana.apiBase', value);
+	else window.localStorage.removeItem('belhana.apiBase');
+}
+
+// Resolved on every request so Settings can switch the server without a reload.
 
 let accessToken = null;
 let refreshToken = null;
@@ -53,6 +86,11 @@ export function getAuth() {
 	return { accessToken, refreshToken, household, user };
 }
 
+export function setHousehold(next) {
+	household = next;
+	persist();
+}
+
 export function isAuthed() {
 	return Boolean(accessToken);
 }
@@ -86,7 +124,7 @@ async function request(method, path, body, opts = {}) {
 	if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 	let res;
 	try {
-		res = await fetch(`${BASE}${path}`, {
+		res = await fetch(`${getApiBase()}${path}`, {
 			method,
 			headers,
 			body: body === undefined ? undefined : JSON.stringify(body)
@@ -124,7 +162,7 @@ export const api = {
 async function refresh() {
 	if (!refreshToken) return false;
 	try {
-		const res = await fetch(`${BASE}/api/auth/refresh`, {
+		const res = await fetch(`${getApiBase()}/api/auth/refresh`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ refresh_token: refreshToken })

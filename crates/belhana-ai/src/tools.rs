@@ -152,7 +152,8 @@ pub async fn execute_tool(
         "search_recipes" => {
             let mt = args["meal_type"].as_str();
             let q = args["query"].as_str();
-            let recipes = belhana_core::recipes::list_recipes(pool, household_id, mt, q, 10, 0).await?;
+            let diet = belhana_core::households::selected_diet_id(pool, household_id).await?;
+            let recipes = belhana_core::recipes::list_recipes(pool, household_id, mt, q, diet.as_deref(), 10, 0).await?;
             Ok(json!(recipes
                 .iter()
                 .map(|r| json!({"id": r.id, "name_ar": r.name_ar, "meal_types": r.meal_types, "servings": r.default_servings}))
@@ -160,7 +161,8 @@ pub async fn execute_tool(
         }
         "calculate_recipe_cost" => {
             let name = args["recipe_name"].as_str().unwrap_or("");
-            let recipes = belhana_core::recipes::list_recipes(pool, household_id, None, Some(name), 1, 0).await?;
+            let diet = belhana_core::households::selected_diet_id(pool, household_id).await?;
+            let recipes = belhana_core::recipes::list_recipes(pool, household_id, None, Some(name), diet.as_deref(), 1, 0).await?;
             let Some(r) = recipes.first() else {
                 return Ok(json!({"found": false}));
             };

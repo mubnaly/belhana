@@ -36,6 +36,27 @@ user baselines and the Olad Zain post as an **unreviewed** import batch).
 Production web bundle: `cd apps/web && npm run build` → static SPA in `apps/web/build`.
 Desktop shell: `cd apps/desktop && npm install && npm run tauri dev` (WebView2 on Windows; API must be running).
 
+Android app (Windows host, Android SDK + a **complete** NDK + JDK 17 + `aarch64-linux-android` Rust
+target):
+
+```powershell
+cd apps/desktop
+npx tauri android init --ci --skip-targets-install   # once, creates src-tauri/gen/android
+npx tauri android build --apk --debug -t aarch64 --ci
+```
+
+`--skip-targets-install` is needed on this host so project generation does not try to install extra
+Rust targets. The NDK directory must contain `toolchains/llvm/prebuilt/windows-x86_64`; if
+`sdkmanager` cannot reach Google's repository, install the verified `android-ndk-r26b-windows.zip`
+(NDK `26.1.10909125`) manually under `$ANDROID_HOME\ndk\26.1.10909125`.
+
+The built APK is
+`apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`.
+The Tauri crate includes a `belhana_desktop_lib` cdylib/staticlib target with the mobile entry point,
+which Gradle needs to link the Android `.so`. The app uses `10.0.2.2:8080` in the Android emulator;
+on a real phone set **Settings →
+Server address** to the API's LAN address. iOS requires macOS/Xcode.
+
 ## Repository layout
 
 | Path | Purpose |

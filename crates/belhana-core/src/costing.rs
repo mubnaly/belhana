@@ -42,6 +42,16 @@ pub struct RecipeCost {
 
 /// Price per single unit of `target_unit` derived from an observation.
 /// Returns the per-unit amount in minor units.
+/// Shared serving scale. Mirrors the household-member count used by the UI:
+/// `servings / default_servings`, with a safe fallback for legacy recipes.
+pub fn scale_factor(default_servings: i64, servings: i64) -> f64 {
+    if default_servings > 0 {
+        servings as f64 / default_servings as f64
+    } else {
+        1.0
+    }
+}
+
 pub fn price_per_unit(obs: &PriceObservation, target_unit: &str) -> Option<f64> {
     let amount = obs.amount_minor? as f64;
     let unit = obs.unit.as_deref()?;
@@ -65,11 +75,7 @@ pub async fn compute_recipe_cost(
     policy: &str,
 ) -> Result<RecipeCost, CommonError> {
     let (recipe, ingredients, _) = recipes::get_recipe(pool, recipe_id).await?;
-    let scale = if recipe.default_servings > 0 {
-        servings as f64 / recipe.default_servings as f64
-    } else {
-        1.0
-    };
+    let scale = scale_factor(recipe.default_servings, servings);
     let mut lines = Vec::new();
     let mut known_total = 0i64;
     let mut unknown_count = 0i64;
@@ -107,7 +113,7 @@ pub async fn compute_recipe_cost(
                             o.unit.clone().unwrap_or_default()
                         )),
                         Some(o.id.clone()),
-                        Some(pricing::freshness(o.observation_date.as_deref(), o.review_status == "verified").to_string()),
+                        Some(pricing::freshness(o.observation_date.as_deref(), pricing::is_user_confirmed(&o.review_status)).to_string()),
                     )
                 }
                 None => (None, Some("unit not convertible".into()), Some(o.id.clone()), None),
@@ -153,11 +159,7 @@ pub async fn ingredient_quantities(
     servings: i64,
 ) -> Result<Vec<(String, f64, String)>, CommonError> {
     let (recipe, ingredients, _) = recipes::get_recipe(pool, recipe_id).await?;
-    let scale = if recipe.default_servings > 0 {
-        servings as f64 / recipe.default_servings as f64
-    } else {
-        1.0
-    };
+    let scale = scale_factor(recipe.default_servings, servings);
     Ok(ingredients
         .iter()
         .filter_map(|ing| ing.product_id.clone().map(|pid| (pid, ing.quantity * scale, ing.unit.clone())))
@@ -223,5 +225,18 @@ mod tests {
         // the comparison must stay unresolved rather than guessing.
         let o = obs(13000, "carton", None, None);
         assert!(price_per_unit(&o, "piece").is_none());
+    }
+
+    #[test]
+    fn servings_scale_matches_household_count() {
+        // A 4-serving recipe doubles for 8 family members and halves for 2.
+        assert!((scale_factor(4, 8) - 2.0).abs() < 1e-9);
+        assert!((scale_factor(4, 2) - 0.5).abs() < 1e-9);
+        assert!((scale_factor(4, 4) - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn legacy_zero_default_servings_do_not_divide_by_zero() {
+        assert!((scale_factor(0, 6) - 1.0).abs() < 1e-9);
     }
 }

@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api.js';
+	import { api, getApiBase, setApiBase } from '$lib/api.js';
 	import { t, toggleLang, getLang, setLang, langStore } from '$lib/i18n.js';
 	import { themeStore, setTheme, getTheme } from '$lib/theme.js';
 	import Icon from '$lib/Icon.svelte';
@@ -8,7 +8,9 @@
 	let hh = null;
 	let err = '';
 	let saved = false;
+	let apiSaved = false;
 	let busy = false;
+	let apiBase = '';
 	let lang = getLang();
 	$: lang = $langStore;
 	let theme = getTheme();
@@ -36,7 +38,17 @@
 		}
 	}
 
-	onMount(load);
+	onMount(() => {
+		apiBase = getApiBase();
+		load();
+	});
+
+	async function applyApiBase() {
+		setApiBase(apiBase);
+		apiSaved = true;
+		err = '';
+		await load();
+	}
 
 	async function save() {
 		err = '';
@@ -89,6 +101,25 @@
 				<Icon name="moon" size={14} /> {t('themeDark')}
 			</button>
 		</div>
+	</div>
+
+	<div class="card">
+		<h3><Icon name="globe" size={16} /> {t('apiBase')}</h3>
+		<p class="muted" style="font-size:.8rem">{t('apiBaseHint')}</p>
+		<div style="display:flex; gap:.5rem; align-items:end; flex-wrap:wrap">
+			<div style="flex:1; min-width:180px">
+				<label for="belhana-api-base" style="margin-top:.3rem">{t('apiBase')}</label>
+				<input
+					id="belhana-api-base"
+					inputmode="url"
+					bind:value={apiBase}
+					oninput={() => (apiSaved = false)}
+					placeholder={t('apiBasePlaceholder')}
+					style="margin:0"/>
+			</div>
+			<button class="btn small" onclick={applyApiBase}>{t('apply')}</button>
+		</div>
+		{#if apiSaved}<p class="muted" style="margin:.3rem 0 0">{t('applied')}</p>{/if}
 	</div>
 
 	{#if !hh && !err}

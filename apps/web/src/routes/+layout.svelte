@@ -38,7 +38,7 @@
 		{ href: '/plan', icon: 'calendar', key: 'plan' },
 		{ href: '/recipes', icon: 'pot', key: 'recipes' },
 		{ href: '/shopping', icon: 'cart', key: 'shopping' },
-		{ href: '/inventory', icon: 'box', key: 'inventory' },
+		{ href: '/more/prices', icon: 'tag', key: 'prices' },
 		{ href: '/more', icon: 'dots', key: 'more' }
 	];
 </script>

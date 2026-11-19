@@ -170,6 +170,17 @@ a:not(.btn):not(.stat):not(.basic-item):hover {
 	margin-bottom: 1.35rem;
 }
 
+/* Words stay whole across the app. Long content wraps between words or the
+   table scrolls; it is never split letter-by-letter to fit a narrow card. */
+.card,
+.note,
+.stat,
+.brand {
+	overflow-wrap: normal;
+	word-break: normal;
+	hyphens: none;
+}
+
 /* Top-level cards are pinned to the wall: a paper strip of tape on top and a
    tiny tilt. Nested cards stay flat so dense lists remain readable. */
 .page > .card {
@@ -407,6 +418,7 @@ label,
 
 .table {
 	width: 100%;
+	min-width: 380px;
 	border-collapse: collapse;
 	font-size: 0.9rem;
 }
@@ -416,6 +428,11 @@ label,
 	text-align: start;
 	padding: 0.45rem 0.5rem;
 	border-bottom: 1px solid var(--border);
+	/* Keep each word intact in narrow columns. Wide tables scroll in .table-wrap
+	   instead of breaking names across lines. */
+	overflow-wrap: normal;
+	word-break: normal;
+	hyphens: none;
 }
 
 .table th {
@@ -430,6 +447,7 @@ label,
 	display: inline-flex;
 	align-items: center;
 	gap: 0.25rem;
+	white-space: nowrap;
 	background: var(--surface-2);
 	color: var(--text);
 	border: 1.5px solid var(--border-strong);
@@ -636,6 +654,7 @@ button.chip {
 	font-size: 1.25rem;
 	font-weight: 800;
 	color: var(--text);
+	white-space: nowrap;
 }
 
 .stat .k {

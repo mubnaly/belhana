@@ -286,7 +286,8 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
     // Structured day table. Today's planned dishes are the mains when present;
     // bread, adama, salad and snack components come from the tagged system
     // library. Rotation by day-of-year keeps suggestions varied but deterministic.
-    let all_recipes = recipes::list_recipes(pool, hid, None, None, 500, 0).await?;
+    let diet = crate::households::selected_diet_id(pool, hid).await?;
+    let all_recipes = recipes::list_recipes(pool, hid, None, None, diet.as_deref(), 500, 0).await?;
     let rotate = today().ordinal() as usize;
     let kcal_for = |id: &str| {
         all_recipes

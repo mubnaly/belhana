@@ -7,7 +7,7 @@
     "beforeDevCommand": "npm --prefix ../web run dev -- --host 127.0.0.1",
     "devUrl": "http://127.0.0.1:5173",
     "beforeBuildCommand": "npm --prefix ../web run build",
-    "frontendDist": "../web/build"
+    "frontendDist": "../../web/build"
   },
   "app": {
     "windows": [
@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:8080 http://localhost:8080; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; object-src 'none'"
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:8080 http://localhost:8080 http://10.0.2.2:8080 http://*; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; object-src 'none'"
     }
   },
   "bundle": {

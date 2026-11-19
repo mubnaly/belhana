@@ -116,6 +116,23 @@ pub struct ReviewAction {
     pub note: Option<String>,
 }
 
+/// A price the user has accepted in the app: usable for costing, still editable.
+/// `confirmed` is deliberately separate from `verified` so a user-entered value
+/// is never presented as an externally reviewed/laboratory price.
+pub fn is_user_confirmed(status: &str) -> bool {
+    matches!(status, "confirmed" | "verified" | "estimate")
+}
+
+/// An edit re-confirms the amount, but an unresolved unit is not silently
+/// approved just because some other field changed.
+fn edit_review_status(current_unit_status: Option<&str>, supplied_unit: bool) -> &'static str {
+    if supplied_unit || current_unit_status == Some("confirmed") {
+        "confirmed"
+    } else {
+        "needs_unit_confirmation"
+    }
+}
+
 /// Freshness classification for display and engine use.
 pub fn freshness(observation_date: Option<&str>, verified: bool) -> &'static str {
     if !verified {
@@ -204,11 +221,14 @@ pub async fn create_observation(
         }
     });
     // A price without a unit is not safely comparable: keep it flagged.
+    // Otherwise a manual entry is confirmed by the user who typed it. It stays
+    // editable (PUT keeps the audit trail); `confirmed` is not `verified`.
     let review_status = if unit_status == "unresolved" {
         "needs_unit_confirmation"
     } else {
-        "unreviewed"
+        "confirmed"
     };
+    let source_type = input.source_type.clone().unwrap_or_else(|| "manual".into());
     let id = new_id();
     sqlx::query(
         "INSERT INTO price_observations (id, product_id, product_variant, merchant_id, location_id, amount_minor, currency, unit, unit_status,
@@ -227,7 +247,7 @@ pub async fn create_observation(
     .bind(&input.package_unit)
     .bind(&input.observation_date)
     .bind(now_rfc3339())
-    .bind(input.source_type.clone().unwrap_or_else(|| "manual".into()))
+    .bind(&source_type)
     .bind(&input.source_url)
     .bind(&input.notes)
     .bind(review_status)
@@ -235,7 +255,16 @@ pub async fn create_observation(
     .execute(pool)
     .await
     .map_err(map_db)?;
-    record_event(pool, &id, "created", actor, None, review_status, Some("manual entry")).await?;
+    record_event(
+        pool,
+        &id,
+        "created",
+        actor,
+        None,
+        review_status,
+        Some("user-entered price: confirmed and editable"),
+    )
+    .await?;
     get_observation(pool, &id).await
 }
 
@@ -261,13 +290,10 @@ pub async fn update_observation(
             return Err(CommonError::Validation("package size must be positive".into()));
         }
     }
-    // A corrected unit on an observation awaiting unit confirmation resolves
-    // that ambiguity; a verified observation stays verified but is re-attributed.
-    let status = if cur.review_status == "needs_unit_confirmation" && input.unit.is_some() {
-        "unreviewed"
-    } else {
-        cur.review_status.as_str()
-    };
+    // The user re-confirmed the value by editing it. It remains editable, and
+    // `previous_amount_minor` plus the `edited` event below preserve the audit.
+    // An unresolved unit still needs its own confirmation.
+    let status = edit_review_status(Some(cur.unit_status.as_str()), input.unit.is_some());
     let now = now_rfc3339();
     sqlx::query(
         "UPDATE price_observations SET amount_minor = ?, previous_amount_minor = ?,
@@ -467,7 +493,7 @@ pub async fn best_observation_for_product(
         return Ok(best.map(|(_, obs)| obs));
     }
     let sql = "SELECT * FROM price_observations
-         WHERE product_id = ? AND review_status IN ('verified','estimate')
+         WHERE product_id = ? AND review_status IN ('verified','confirmed','estimate')
            AND amount_minor IS NOT NULL AND unit IS NOT NULL
          ORDER BY observation_date DESC, submitted_at DESC LIMIT 1";
     let row = sqlx::query(sql).bind(product_id).fetch_optional(pool).await.map_err(map_db)?;
@@ -481,7 +507,7 @@ pub async fn usable_observations(
 ) -> Result<Vec<PriceObservation>, CommonError> {
     let rows = sqlx::query(
         "SELECT * FROM price_observations
-         WHERE product_id = ? AND review_status IN ('verified','estimate')
+         WHERE product_id = ? AND review_status IN ('verified','confirmed','estimate')
            AND amount_minor IS NOT NULL AND unit IS NOT NULL
          ORDER BY observation_date DESC",
     )
@@ -500,11 +526,34 @@ pub async fn sweep_stale(pool: &SqlitePool, days: i64) -> Result<u64, CommonErro
         .to_string();
     let res = sqlx::query(
         "UPDATE price_observations SET review_status = 'stale'
-         WHERE review_status = 'verified' AND observation_date IS NOT NULL AND observation_date < ?",
+         WHERE review_status IN ('verified','confirmed')
+           AND observation_date IS NOT NULL AND observation_date < ?",
     )
     .bind(&cutoff)
     .execute(pool)
     .await
     .map_err(map_db)?;
     Ok(res.rows_affected())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_confirmed_status_is_usable_but_distinct_from_verified() {
+        assert!(is_user_confirmed("confirmed"));
+        assert!(is_user_confirmed("verified"));
+        assert!(is_user_confirmed("estimate"));
+        assert!(!is_user_confirmed("unreviewed"));
+        assert!(!is_user_confirmed("needs_unit_confirmation"));
+        assert!(!is_user_confirmed("rejected"));
+    }
+
+    #[test]
+    fn editing_keeps_unresolved_unit_flagged() {
+        assert_eq!(edit_review_status(Some("unresolved"), false), "needs_unit_confirmation");
+        assert_eq!(edit_review_status(Some("unresolved"), true), "confirmed");
+        assert_eq!(edit_review_status(Some("confirmed"), false), "confirmed");
+    }
 }

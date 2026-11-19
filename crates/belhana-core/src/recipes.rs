@@ -162,11 +162,17 @@ pub struct CreateStep {
     pub timer_minutes: Option<i64>,
 }
 
+/// How many recipes to inspect before applying an in-memory diet filter.
+/// Filtering is done after loading so ingredient names can participate; the
+/// caller's limit/offset are applied afterwards to keep pagination correct.
+const DIET_CANDIDATE_LIMIT: i64 = 2000;
+
 pub async fn list_recipes(
     pool: &SqlitePool,
     household_id: &str,
     meal_type: Option<&str>,
     search: Option<&str>,
+    diet: Option<&str>,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<Recipe>, CommonError> {
@@ -189,6 +195,16 @@ pub async fn list_recipes(
         );
     }
     sql.push_str(" ORDER BY is_system DESC, name_ar LIMIT ? OFFSET ?");
+    let filtering = diet
+        .filter(|d| !d.is_empty() && *d != "all")
+        .and_then(crate::diet_filter::keywords)
+        .is_some();
+    // With a diet filter we load a wider candidate window, then paginate.
+    let (fetch_limit, fetch_offset) = if filtering {
+        (DIET_CANDIDATE_LIMIT, 0)
+    } else {
+        (limit, offset)
+    };
     let mut q = sqlx::query(&sql);
     q = q.bind(household_id);
     if let Some(mt) = meal_type {
@@ -200,9 +216,51 @@ pub async fn list_recipes(
             q = q.bind(like.clone());
         }
     }
-    let rows = q.bind(limit).bind(offset).fetch_all(pool).await.map_err(map_db)?;
+    let rows = q
+        .bind(fetch_limit)
+        .bind(fetch_offset)
+        .fetch_all(pool)
+        .await
+        .map_err(map_db)?;
     let mut out: Vec<Recipe> = rows.into_iter().map(Recipe::from).collect();
     attach_tags(pool, &mut out).await?;
+
+    if filtering {
+        // One query for every candidate's ingredient names (raw names first,
+        // catalog names as a fallback when a recipe only stores product ids).
+        let names = sqlx::query(
+            "SELECT ri.recipe_id, ri.raw_name_ar, ri.raw_name_en, p.name_ar AS p_ar, p.name_en AS p_en
+               FROM recipe_ingredients ri
+               JOIN recipes r ON r.id = ri.recipe_id
+               LEFT JOIN products p ON p.id = ri.product_id
+              WHERE r.is_active = 1 AND (r.household_id = ? OR r.household_id IS NULL)",
+        )
+        .bind(household_id)
+        .fetch_all(pool)
+        .await
+        .map_err(map_db)?;
+        let mut by_recipe: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        for row in names {
+            let id: String = row.get("recipe_id");
+            let text = format!(
+                "{} {} {} {}",
+                row.get::<Option<String>, _>("raw_name_ar").unwrap_or_default(),
+                row.get::<Option<String>, _>("raw_name_en").unwrap_or_default(),
+                row.get::<Option<String>, _>("p_ar").unwrap_or_default(),
+                row.get::<Option<String>, _>("p_en").unwrap_or_default(),
+            );
+            by_recipe.entry(id).or_default().push_str(&text);
+        }
+        out.retain(|r| {
+            crate::diet_filter::recipe_matches(diet, r, by_recipe.get(&r.id).map(String::as_str).unwrap_or(""))
+        });
+        out = out
+            .into_iter()
+            .skip(offset.max(0) as usize)
+            .take(limit.max(0) as usize)
+            .collect();
+    }
+
     let mut kcal = crate::nutrition::recipe_kcal_map(pool).await?;
     let mut macros = crate::nutrition::recipe_macro_map(pool).await?;
     for r in &mut out {

@@ -10,12 +10,14 @@ use crate::auth::AuthUser;
 use crate::error::{ApiError, ApiResult};
 use crate::state::SharedState;
 use belhana_common::CommonError;
-use belhana_core::{costing, recipes};
+use belhana_core::{costing, households, recipes};
 
 #[derive(Deserialize)]
 pub struct RecipeQuery {
     pub meal_type: Option<String>,
     pub search: Option<String>,
+    /// Optional explicit override; when absent the household preference is used.
+    pub diet: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
@@ -35,11 +37,18 @@ async fn list_recipes(
     user: AuthUser,
     Query(q): Query<RecipeQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    // A caller may override the filter; otherwise always honour the household's
+    // selected food preference so every recipe surface stays consistent.
+    let diet = match q.diet.as_deref() {
+        Some(value) => Some(value.to_string()),
+        None => households::selected_diet_id(&state.pool, &user.household_id).await?,
+    };
     let list = recipes::list_recipes(
         &state.pool,
         &user.household_id,
         q.meal_type.as_deref(),
         q.search.as_deref(),
+        diet.as_deref(),
         q.limit.unwrap_or(50).clamp(1, 200),
         q.offset.unwrap_or(0).max(0),
     )

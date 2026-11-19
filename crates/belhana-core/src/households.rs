@@ -25,6 +25,9 @@ pub struct Household {
     pub notes: Option<String>,
     pub price_policy: String,
     pub consumption_workflow: String,
+    /// Editorial food-preference id used to steer recipe lists and plans.
+    /// `None` means no diet filter (all recipes available).
+    pub selected_diet_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -51,6 +54,7 @@ impl From<sqlx::sqlite::SqliteRow> for Household {
             notes: r.get("notes"),
             price_policy: r.get("price_policy"),
             consumption_workflow: r.get("consumption_workflow"),
+            selected_diet_id: r.get("selected_diet_id"),
             created_at: r.get("created_at"),
             updated_at: r.get("updated_at"),
         }
@@ -87,6 +91,9 @@ pub struct UpdateHousehold {
     pub notes: Option<String>,
     pub price_policy: Option<String>,
     pub consumption_workflow: Option<String>,
+    /// Outer None = field absent (keep current). Inner None = clear the filter.
+    #[serde(default)]
+    pub selected_diet_id: Option<Option<String>>,
 }
 
 /// Creates a household and adds `owner_user_id` as its owner.
@@ -170,11 +177,17 @@ pub async fn update_household(
         return Err(CommonError::Validation("household name cannot be empty".into()));
     }
     let size = input.household_size.unwrap_or(current.household_size).max(1);
+    // `outer None` keeps the saved diet; `Some(None)` explicitly clears it.
+    let selected_diet_id = match &input.selected_diet_id {
+        Some(value) => value.clone(),
+        None => current.selected_diet_id.clone(),
+    };
     sqlx::query(
         "UPDATE households SET name=?, country=?, city=?, area=?, currency=?, household_size=?,
             shopping_frequency=?, daily_budget_minor=?, weekly_budget_minor=?, monthly_budget_minor=?,
             occasion_budget_minor=?, snacks_budget_minor=?, contingency_minor=?, preferred_merchants=?,
-            kitchen_equipment=?, notes=?, price_policy=?, consumption_workflow=?, updated_at=? WHERE id=?",
+            kitchen_equipment=?, notes=?, price_policy=?, consumption_workflow=?, selected_diet_id=?,
+            updated_at=? WHERE id=?",
     )
     .bind(&name)
     .bind(input.country.clone().unwrap_or(current.country.clone()))
@@ -194,6 +207,7 @@ pub async fn update_household(
     .bind(input.notes.clone().or(current.notes.clone()))
     .bind(input.price_policy.clone().unwrap_or(current.price_policy.clone()))
     .bind(input.consumption_workflow.clone().unwrap_or(current.consumption_workflow.clone()))
+    .bind(&selected_diet_id)
     .bind(&now)
     .bind(id)
     .execute(pool)
@@ -201,6 +215,19 @@ pub async fn update_household(
     .map_err(map_db)?;
     crate::audit::log(pool, Some(id), Some(actor), "update", "household", id, None, None).await?;
     get_household(pool, id).await
+}
+
+/// Lightweight lookup used by recipe/plan queries that only need the filter id.
+pub async fn selected_diet_id(
+    pool: &SqlitePool,
+    household_id: &str,
+) -> Result<Option<String>, CommonError> {
+    sqlx::query_scalar("SELECT selected_diet_id FROM households WHERE id = ?")
+        .bind(household_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(map_db)
+        .map(|v| v.flatten())
 }
 
 /// Authorization check: does this user belong to this household?

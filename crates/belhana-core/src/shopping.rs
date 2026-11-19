@@ -188,7 +188,7 @@ pub async fn generate_from_plan(
                         Some(per.round() as i64),
                         Some(o.id.clone()),
                         o.merchant_id.clone(),
-                        Some(pricing::freshness(o.observation_date.as_deref(), o.review_status == "verified").to_string()),
+                        Some(pricing::freshness(o.observation_date.as_deref(), pricing::is_user_confirmed(&o.review_status)).to_string()),
                     ),
                     None => (None, None, None, Some("unit_mismatch".to_string())),
                 },

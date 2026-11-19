@@ -72,6 +72,12 @@ pub struct PlanOutput {
     pub days_cost: Vec<(String, i64)>,
     pub conflicts: Vec<String>,
     pub unknown_price_products: Vec<String>,
+    /// Food-preference id that steered this plan, when one is selected.
+    #[serde(default)]
+    pub selected_diet_id: Option<String>,
+    /// Short non-clinical note shown with plans generated under a diet.
+    #[serde(default)]
+    pub diet_note: Option<crate::guidance::Text>,
 }
 
 struct Candidate {
@@ -239,7 +245,8 @@ pub async fn generate_plan_in_memory(
     locked: &[LockedSlot],
 ) -> Result<PlanOutput, CommonError> {
     let ctx = build_ctx(pool, hh).await?;
-    let all_recipes = recipes::list_recipes(pool, &hh.id, None, None, 500, 0).await?;
+    let all_recipes = recipes::list_recipes(pool, &hh.id, None, None, hh.selected_diet_id.as_deref(), 500, 0).await?;
+    let diet_note = crate::guidance::diet_plan_note(hh.selected_diet_id.as_deref());
     let mut conflicts = Vec::new();
     let mut unknown_products: Vec<String> = Vec::new();
     let mut used_count: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
@@ -327,8 +334,14 @@ pub async fn generate_plan_in_memory(
             });
         }
         if cands.is_empty() {
+            let diet_hint = hh
+                .selected_diet_id
+                .as_deref()
+                .and_then(crate::guidance::diet_name)
+                .map(|n| format!(" ونظام «{}» المختار", n.ar))
+                .unwrap_or_default();
             conflicts.push(format!(
-                "لا توجد وصفات متاحة لفترة {period} بعد تطبيق القيود الصارمة (حساسية/استثناءات/معدات)"
+                "لا توجد وصفات متاحة لفترة {period} بعد تطبيق القيود الصارمة (حساسية/استثناءات/معدات{diet_hint}). جرّب نظاماً آخر من صفحة الحميات أو أضف وصفات مناسبة."
             ));
         }
         candidates_by_period.insert(period.clone(), cands);
@@ -510,6 +523,8 @@ pub async fn generate_plan_in_memory(
         days_cost,
         conflicts,
         unknown_price_products: dedup(unknown_products),
+        selected_diet_id: hh.selected_diet_id.clone(),
+        diet_note,
     })
 }
 
@@ -779,6 +794,17 @@ pub async fn save_plan(
 
 /// Reads a stored plan back into PlanOutput form.
 pub async fn read_plan(pool: &SqlitePool, plan_id: &str) -> Result<PlanOutput, CommonError> {
+    // Show the household's current food preference alongside saved plans.
+    let selected_diet_id: Option<String> = sqlx::query_scalar(
+        "SELECT h.selected_diet_id FROM meal_plans p
+           JOIN households h ON h.id = p.household_id WHERE p.id = ?",
+    )
+    .bind(plan_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(map_db)?
+    .flatten();
+    let diet_note = crate::guidance::diet_plan_note(selected_diet_id.as_deref());
     let rows = sqlx::query(
         "SELECT pm.*, r.name_ar AS recipe_name FROM planned_meals pm
          JOIN recipes r ON r.id = pm.recipe_id
@@ -825,6 +851,8 @@ pub async fn read_plan(pool: &SqlitePool, plan_id: &str) -> Result<PlanOutput, C
         days_cost: vec![],
         conflicts: vec![],
         unknown_price_products: vec![],
+        selected_diet_id,
+        diet_note,
     })
 }
 

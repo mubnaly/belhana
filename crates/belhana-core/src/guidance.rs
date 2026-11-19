@@ -305,6 +305,50 @@ pub fn guide() -> Guide {
             ],
             caution: tx("هذا إرشاد عام للأسرة وليس خطة علاجية لأي حالة مرضية.", "General family guidance, not a treatment plan for any condition."),
         },
+        Diet {
+            id: "tayyibat".into(),
+            name: tx("نظام الطيبات", "Tayyibat system"),
+            summary: tx("نمط يُنسب إلى د. ضياء العوضي، يقوم على قائمة مسموحات محددة وتجنّب ما خارجها. القوائم تختلف بين المتبعين، لذا ما هنا تفسير تقديري للقاسم المشترك وليس بروتوكولاً معتمداً.", "A system attributed to Dr. Dhiaa Al-Awadi, built around a defined allow-list and avoiding foods outside it. Followers' lists differ; this is an approximate common-denominator interpretation, not an authorised protocol."),
+            include: vec![
+                tx("أرز وبطاطس وخبز حبوب كاملة", "Rice, potatoes and whole-grain bread"),
+                tx("لحم وجبن معتّق وسمنة وزيت زيتون", "Red meat, aged cheese, ghee and olive oil"),
+                tx("سمك وسردين وتمر وشاي أخضر", "Fish, sardines, dates and green tea"),
+                tx("بروتين حيواني بنمط: يوم نعم ويوم لا حسب المتبعين", "Animal protein is often followed every other day by followers"),
+            ],
+            limit: vec![
+                tx("الدجاج والبيض والحليب والجبن الطازج", "Chicken, eggs, milk and fresh cheese"),
+                tx("البقوليات مثل الفول والعدس والحمص", "Legumes such as fava beans, lentils and chickpeas"),
+                tx("الطماطم والفلفل والباذنجان والخضروات الورقية", "Tomatoes, peppers, aubergine and leafy greens"),
+                tx("الدقيق الأبيض والمكرونة والسكر والعصائر والمشروبات الغازية", "White flour, pasta, sugar, juice and fizzy drinks"),
+            ],
+            meals: vec![
+                tx("فطور: تمر مع جبن معتّق وشاي أخضر", "Breakfast: dates with aged cheese and green tea"),
+                tx("غداء: أرز مع لحم أو سمك وزيت زيتون", "Lunch: rice with meat or fish and olive oil"),
+                tx("عشاء: بطاطس وسردين أو لحم حسب نمط يوم نعم/يوم لا", "Dinner: potatoes with sardines or meat, following the every-other-day pattern"),
+            ],
+            caution: tx("لا توجد تجارب سريرية محكمة تثبت أن الطيبات يعالج أمراضاً، ولا يوجد بروتوكول موحّد. قد يقلل الأطعمة المصنعة، لكن النسخ الصارمة قد تسبب نقص عناصر غذائية. لا توقف الدواء، واستشر طبيباً أو أخصائي تغذية خاصة للأطفال والحمل ومرضى السكري والكلى والقلب.", "No controlled clinical trials establish Tayyibat as a treatment, and there is no single fixed protocol. It may reduce processed foods, but strict versions can risk nutrient gaps. Do not stop medication; ask a doctor or dietitian, especially for children, pregnancy, diabetes, kidney or heart disease."),
+        },
+        Diet {
+            id: "keto".into(),
+            name: tx("الكيتو (منخفض الكربوهيدرات)", "Keto (low-carbohydrate)"),
+            summary: tx("نمط منخفض الكربوهيدرات جداً وغني بالدهون: تقليل الحبوب والبقوليات ومعظم الفواكه، والاعتماد على البروتين والدهون الصحية وبعض الخضروات غير النشوية. الأرقام أدناه تقديرية ولا تحسب حالة الكيتوزية.", "A very-low-carbohydrate, high-fat pattern: grains, legumes and most fruit are reduced in favour of protein, healthy fats and some non-starchy vegetables. The figures are estimates; the app does not compute a ketosis state."),
+            include: vec![
+                tx("لحوم ودجاج وسمك وتونة وبيض", "Meat, poultry, fish, tuna and eggs"),
+                tx("جبن معتّق ومكسرات ولوز وجوز وزيت زيتون وسمنة", "Aged cheese, nuts, almonds, walnuts, olive oil and ghee"),
+                tx("خضروات غير نشوية مثل الخيار والكوسا والسبانخ والقرنبيط", "Non-starchy vegetables such as cucumber, courgette, spinach and cauliflower"),
+            ],
+            limit: vec![
+                tx("الأرز والخبز والمكرونة والبطاطس والدقيق", "Rice, bread, pasta, potatoes and flour"),
+                tx("السكر والعصائر والمشروبات المحلّاة", "Sugar, juice and sweetened drinks"),
+                tx("البقوليات ومعظم الفواكه مثل الموز والتفاح والتمر", "Legumes and most fruit such as banana, apple and dates"),
+            ],
+            meals: vec![
+                tx("فطور: بيض مع جبن وكوب قهوة غير محلّى", "Breakfast: eggs with cheese and an unsweetened coffee"),
+                tx("غداء: كفتة أو سمك مع خضروات غير نشوية وزيت زيتون", "Lunch: kofta or fish with non-starchy vegetables and olive oil"),
+                tx("عشاء: تونة أو دجاج مع سلطة خضراء ومكسرات", "Dinner: tuna or chicken with green salad and nuts"),
+            ],
+            caution: tx("النسبة الشائعة ≈70-80% دهون و≈5-10% كربوهيدرات و≈10-20% بروتين. الالتزام طويل الأمد صعب، وقد يرتفع الكوليسترول LDL وتحدث فجوات غذائية. خطر الحماض الكيتوني يجعل الإشراف الطبي ضرورياً لمرضى السكري من النوع الأول، ويُنصح بالاستشارة قبل البدء.", "Typical published ratios are ≈70-80% fat, ≈5-10% carbohydrate and ≈10-20% protein. Long-term adherence is difficult, LDL may rise and nutrient gaps can occur. Ketoacidosis risk makes medical supervision essential for type 1 diabetes; consult a clinician before starting."),
+        },
     ];
 
     let meal_timing = vec![
@@ -367,6 +411,10 @@ pub fn guide() -> Guide {
         Source { label: "TopendSports — MET values".into(), url: "https://www.topendsports.com/weight-loss/energy-met.htm".into() },
         Source { label: "EatRight — Timing pre/post workout nutrition".into(), url: "https://www.eatright.org/fitness/physical-activity/exercise-nutrition/timing-your-pre-and-post-workout-nutrition".into() },
         Source { label: "ISSN — Protein and exercise".into(), url: "https://pubmed.ncbi.nlm.nih.gov/17908291/".into() },
+        Source { label: "الطبي — نظام الطيبات (فوائده ومخاطره)".into(), url: "https://altibbi.com/مقالات-طبية/تغذية/نظام-الطيبات-10915".into() },
+        Source { label: "نظام الطيبات — جدول المسموح والممنوع".into(), url: "https://altayebaat.com/articles/جدول-المسموح-والممنوع-في-نظام-الطيبات".into() },
+        Source { label: "الموسوعة — نظام الطيبات والادعاءات الصحية".into(), url: "https://almawso3a.com/نظام-الطيبات-الغذائي-حقيقة-الادعاءات-والتحذيرات-الصحية".into() },
+        Source { label: "Harvard Nutrition Source — Ketogenic diet review".into(), url: "https://nutritionsource.hsph.harvard.edu/healthy-weight/diet-reviews/ketogenic-diet/".into() },
     ];
 
     Guide {
@@ -377,6 +425,36 @@ pub fn guide() -> Guide {
         notes,
         sources,
     }
+}
+
+/// Localised name of a selectable diet, used by plans and banners.
+pub fn diet_name(diet_id: &str) -> Option<Text> {
+    guide()
+        .diets
+        .into_iter()
+        .find(|d| d.id == diet_id)
+        .map(|d| d.name)
+}
+
+/// Short, non-clinical note attached to plans generated under a chosen diet.
+pub fn diet_plan_note(diet_id: Option<&str>) -> Option<Text> {
+    let id = diet_id?;
+    let name = diet_name(id)?;
+    let (ar, en) = match id {
+        "tayyibat" => (
+            format!("الوجبات مقترحة وفق «{}» كتفضيل غذائي تقديري، وليست خطة علاجية أو بروتوكولاً معتمداً. راجع مختصاً قبل تطبيق أي نظام مقيد.", name.ar),
+            format!("Meals are suggested for the «{}» food preference as an approximation, not a treatment plan or authorised protocol. Ask a professional before following any restrictive system.", name.en),
+        ),
+        "keto" => (
+            format!("الوجبات مقترحة وفق «{}» كتفضيل غذائي تقديري؛ القيم ≈ تقديرية ولا تُحسب حالة الكيتوزية. استشر طبيباً قبل البدء، خاصة مع السكري.", name.ar),
+            format!("Meals are suggested for the «{}» food preference; ≈ values are estimates and no ketosis state is computed. Ask a clinician first, especially with diabetes.", name.en),
+        ),
+        _ => (
+            format!("الوجبات مقترحة وفق «{}» كتفضيل غذائي عام، وليست خطة علاجية.", name.ar),
+            format!("Meals are suggested for the «{}» general food preference, not a treatment plan.", name.en),
+        ),
+    };
+    Some(tx(ar, en))
 }
 
 #[derive(Debug, Deserialize)]

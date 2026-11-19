@@ -288,6 +288,7 @@ async fn apply_proposal(
                 notes: None,
                 price_policy: None,
                 consumption_workflow: None,
+                selected_diet_id: None,
             };
             match field {
                 "daily_budget_minor" => u.daily_budget_minor = Some(amount),

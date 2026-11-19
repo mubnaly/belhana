@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.2.7 — 2026-11-19 (household food preference, live servings, confirmed prices, Android)
+
+### Added
+- Migration `0014_selected_diet` stores `household.selected_diet_id`; `/more/diets` now lets the
+  household choose one food preference that drives every recipe list, generated plan, dashboard,
+  occasion menu and AI recipe suggestion. Tayyibat and keto were researched first and are documented
+  with sources and safety framing in `docs/20-DIET-SYSTEMS-EVIDENCE.md`.
+- `belhana_core::diet_filter` applies explainable keyword matching to recipe names, ingredients and
+  tags. Hard allergy/exclusion rules still take precedence, informational plans apply no filter, and
+  a no-match state offers a way back to `/more/diets`. Diets are food preferences, not medical plans.
+- Migration `0015_confirmed_prices` introduces a distinct `confirmed` review status (not the clinical
+  `verified` status). Prices added or edited in the app become confirmed automatically, remain fully
+  editable, and retain `previous_amount_minor` plus audit events. Ambiguous unit/date/product rows
+  still need their specific confirmation before costing.
+- The recipe modal now uses the household member count as its serving count. Changing it rescales
+  per-serving cost and nutrition synchronously and saves the new count back to the household
+  (debounced); deep links can also pass `?open=<id>&servings=<n>`.
+
+### Changed
+- Bottom navigation swaps `/inventory` for `/more/prices`; inventory remains reachable from `/more`.
+- The prices page states that every entered/edited price is confirmed and editable; confirmed rows
+  are no longer offered the old “confirm” action and are styled as usable, not clinical, prices.
+- The weekly plan is grouped by day with meal cards in the same responsive row, and card/table labels
+  wrap only between words so Arabic and English terms are never split mid-word.
+- Android project generation uses `npx tauri android init --ci --skip-targets-install` on Windows so
+  it does not try to install extra Rust targets; the API base differs for emulator/device use.
+  `frontendDist` now points at `../../web/build` (relative to `src-tauri`) so production desktop and
+  Android builds actually find the built web bundle. The Tauri shell now has a shared `belhana_desktop_lib`
+  library crate with the mobile entry point, which Gradle needs to link the Android `.so`.
+
+### Verified
+- `cargo check --workspace --offline` and `cargo test --workspace --offline` pass 38 tests;
+  `npm --prefix apps/web run build` is clean.
+- `npx tauri android build --apk --debug -t aarch64 --ci` produced
+  `apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`.
+- See `docs/17-TESTING.md` and `IMPLEMENTATION_STATUS.md` for the API/browser smoke results.
+
 ## 0.2.6 — 2026-11-19 (macros, diet & athlete guidance, theme in settings)
 
 ### Added

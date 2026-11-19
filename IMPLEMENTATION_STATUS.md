@@ -8,13 +8,14 @@ it deliberately does not claim unverified integrations.
 | Component | State | Evidence |
 | --- | --- | --- |
 | `belhana-common` | ✅ | 8 unit tests; money is integer piasters |
-| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (13 files, incl. `0011_guidance_and_purchasing`, `0012_product_nutrition`, `0013_product_macros`) |
+| `belhana-db` | ✅ | pool + embedded-ish SQLx migrations (15 files, incl. `0011_guidance_and_purchasing`, `0012_product_nutrition`, `0013_product_macros`, `0014_selected_diet`, `0015_confirmed_prices`) |
 | `belhana-auth` | ✅ | 2 tests; Argon2 + JWT access/refresh rotation |
-| `belhana-core` | ✅ | 30 tests; domains implemented against SQLite (incl. package-price, macro, MET/BMR and guidance tests) |
+| `belhana-core` | ✅ | 28 tests; domains implemented against SQLite (incl. package-price, macro, MET/BMR, guidance, diet-filter and confirmed-price tests) |
 | `belhana-ai` | ✅ | provider abstraction, tool schemas, proposal guardrails; instruction rules in system prompt; no live API key tested |
 | `apps/api` | ✅ | 86 route declarations in 17 modules (incl. nutrition guide + athlete plan); startup migrate + seed; healthz |
 | `apps/web` | ✅ | 18 app screens (plus login/register), Arabic RTL/English, theme switch in Settings, light/dark sticky-note themes, monochrome SVG icons, static build clean (no a11y warnings) + browser E2E pass |
 | `apps/desktop` | 🟡 | Tauri 2 shell compiles (`cargo check`); WebView2 required to launch the Windows binary |
+| `apps/desktop` (Android) | ✅ | debug APK built for `aarch64` (125.46 MB); not launched on a device |
 | `workers/maintenance_worker` | ✅ | `--once` sweep ran clean (stale prices, expiry reminders, pruning) |
 
 ## MVP checklist (master prompt §25)
@@ -53,6 +54,58 @@ it deliberately does not claim unverified integrations.
     per-product nutrition and always labelled as estimates (`≈` / `kcalEstimate`).
 25. ✅ Estimated protein/carbs/fat/fibre on recipes, plans and shopping; researched diet and athlete
     guidance on two dedicated pages; MET burn and macro targets computed with clear estimate labels.
+26. ✅ Household-wide food preference stored on `households.selected_diet_id`; recipes, plans,
+    dashboard, occasions and AI recipe tools follow it. Tayyibat and keto added from researched
+    evidence with explicit “not a treatment plan” framing.
+27. ✅ Recipe modal serves the household member count; changing it rescales cost, kcal and ingredient
+    quantities immediately and saves the count back to the household.
+28. ✅ Prices entered or edited in the app are `confirmed` (not clinical `verified`), remain editable,
+    and keep `previous_amount_minor` plus review events; ambiguous import rows still need unit/date/
+    product confirmation.
+29. ✅ Android Gradle project generated and debug APK built for `aarch64`; see the build note below.
+
+## Household preference, live servings, confirmed prices & Android (2026-11-19)
+
+Research for Tayyibat and keto was recorded in `docs/20-DIET-SYSTEMS-EVIDENCE.md` before coding.
+Migration `0014_selected_diet` adds `selected_diet_id` to `households`; `UpdateHousehold` and
+`selected_diet_id()` expose it to the API. `belhana_core::diet_filter` performs explainable keyword
+matching over recipe names, ingredients and tags. It is used by recipe listing, plan generation,
+dashboard, occasion menus and AI recipe tools; allergy/exclusion rules still win, informational plans
+apply no filter, and the UI has an explicit no-match state with a link back to `/more/diets`.
+
+The recipe modal derives all numbers from `servings / recipe.default_servings`, so kcal, macros and
+ingredient quantities change synchronously without mutating the immutable recipe detail. Only the
+debounced write back to `/api/household` touches the network. Deep links can open a recipe with
+`?open=<id>&servings=<n>`.
+
+Migration `0015_confirmed_prices` adds the `confirmed` review status, a user-entered price state that
+is usable in costing but deliberately distinct from `verified`. Create/edit paths set `confirmed`,
+preserve `previous_amount_minor` and record audit events; unresolved units still produce
+`needs_unit_confirmation`. The bottom nav now opens `/more/prices` instead of `/inventory`.
+
+Verified: `cargo check --workspace --offline` and `cargo test --workspace --offline` (38 tests) clean;
+`npm --prefix apps/web run build` clean. Fresh-DB API smoke: household diet null → `tayyibat`, recipes
+42 → 3, plan `diet_note` present with 4 slots, created/edited price `confirmed` with
+`previous_amount_minor=1250`. Browser pass in Arabic RTL and English LTR plus light/dark on
+`/more/diets`, `/recipes`, `/plan` and `/more/prices`: 0 console errors, bottom nav shows الأسعار and
+no المخزن, servings 1 → 3 changed ≈709 → ≈2127 kcal and rice 125 g → 375 g, plan day cards share a
+row with intact words, and the new «مؤكد» / «موثّق» filters are distinct.
+
+Android project generation with `npx tauri android init --ci --skip-targets-install` succeeded. The
+first APK build failed because the installed NDK 26.1.10909125 directory contained only
+`source.properties` (the prebuilt LLVM toolchain was missing). `sdkmanager` could not fetch Google’s
+repository from this shell, so the verified `android-ndk-r26b-windows.zip` (SHA1
+`17453c61a59e848cffb8634f2c7b322417f1732e`) was downloaded and extracted manually. The next build
+exposed two real config issues, both fixed: `frontendDist` was `../web/build` (resolved to
+`apps/desktop/web/build`) and is now `../../web/build`; and the Tauri package was binary-only, so a
+`belhana_desktop_lib` cdylib/staticlib target with the `mobile_entry_point` was added in `src/lib.rs`.
+Final build command:
+`cd apps/desktop && npx tauri android build --apk --debug -t aarch64 --ci`.
+Result: ✅ APK at
+`apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`
+(125.46 MB). Android SDK build-tools 36 and platform 37.0 were installed by Gradle during the build;
+only build output is ignored by the generated Android `.gitignore`. The APK was not launched on a
+device.
 
 ## Macros, diet & athlete guidance, theme in Settings (2026-11-19)
 
@@ -71,8 +124,8 @@ pre/post-workout timing and alternatives). The floating theme button was removed
 control is now a Light/Dark card on `/more/settings`, keeping `belhana.theme` persistence and the
 early first-paint restore.
 
-Verified: `cargo check --workspace` and `cargo test --workspace` (30 tests) clean; `npm run build`
-clean. API smoke on a fresh DB: guide 200 (3 diets, 7 micronutrients, 10 exercises, 4 timing
+Verified: `cargo check --workspace --offline` and `cargo test --workspace --offline` (38 tests in the
+current suite) clean; `npm run build` clean. API smoke on a fresh DB: guide 200 (3 diets, 7 micronutrients, 10 exercises, 4 timing
 sections, 10 sources); athlete plan for 70 kg male 200 with `bmr=1649`, `tdee=2556`, `protein_g=98`,
 `carbs_g=335.4`, `fat_g=91.4`, `burn_kcal=245`, `met=3.5`; 70 kg examples corrected to ≈245 kcal/h
 brisk walking and ≈245–420 kcal/h lifting, not 300/900. Recipes, dashboard courses, plan slots
