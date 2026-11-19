@@ -26,13 +26,13 @@ val keystoreProperties = Properties().apply {
 val hasReleaseKeystore = !keystoreProperties.getProperty("storeFile").isNullOrBlank()
 
 android {
-    compileSdk = 37
+    compileSdk = 35
     namespace = "com.dawwar.online.allama.belhana"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         applicationId = "com.dawwar.online.allama.belhana"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 35
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
