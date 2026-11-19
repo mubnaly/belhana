@@ -20,3 +20,13 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+
+# Release builds must be small: strip debug symbols, link-time optimise, and
+# optimise for size. The debug .so was 118 MB; this brings it near the ~6-10 MB
+# that a normal Tauri/Svelte mobile app ships.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

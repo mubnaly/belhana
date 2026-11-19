@@ -42,8 +42,17 @@ target):
 ```powershell
 cd apps/desktop
 npx tauri android init --ci --skip-targets-install   # once, creates src-tauri/gen/android
-npx tauri android build --apk --debug -t aarch64 --ci
+npx tauri android build --apk -t aarch64 --ci        # release is the default; NO --debug
 ```
+
+**Always build release, not debug.** A debug APK ships the unoptimised Rust `.so` with full
+debuginfo: 118.55 MB of the old 125.46 MB APK. Release (with `strip`, `lto`, `opt-level = "s"` and
+`panic = "abort"` from `src-tauri/Cargo.toml`) cuts the `.so` to 4.02 MB, and Gradle's release
+minification cuts the Kotlin dex from ~13 MB to 1.41 MB — a **5.57 MB** APK. The generated
+`build.gradle.kts` keeps `usesCleartextTraffic=true` in release because this app must reach a
+local/LAN HTTP API, and signs release with the local debug key so it is installable; replace that
+with a real keystore before distributing (re-run `tauri android init` only if prepared to reapply
+these edits).
 
 `--skip-targets-install` is needed on this host so project generation does not try to install extra
 Rust targets. The NDK directory must contain `toolchains/llvm/prebuilt/windows-x86_64`; if
@@ -51,7 +60,7 @@ Rust targets. The NDK directory must contain `toolchains/llvm/prebuilt/windows-x
 (NDK `26.1.10909125`) manually under `$ANDROID_HOME\ndk\26.1.10909125`.
 
 The built APK is
-`apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`.
+`apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`.
 The Tauri crate includes a `belhana_desktop_lib` cdylib/staticlib target with the mobile entry point,
 which Gradle needs to link the Android `.so`. The app uses `10.0.2.2:8080` in the Android emulator;
 on a real phone set **Settings →
@@ -74,7 +83,7 @@ Server address** to the API's LAN address. iOS requires macOS/Xcode.
 | `scripts` | `smoke_guidance.py` (Python, 30 checks) + PowerShell smoke tests (Arabic payloads in `.json` files) |
 | `docs` | Product, architecture, schema and operational documentation |
 
-The original 19-crate sketch in the master prompt was consolidated into six crates: one per
+The original 19-crate sketch in the product brief was consolidated into six crates: one per
 architectural layer instead of one per feature. See `docs/02-ARCHITECTURE.md`.
 
 ## Guidance & purchasing features
@@ -109,5 +118,6 @@ logic. `scripts/smoke*.ps1` exercise the full MVP API against the seeded SQLite 
 - AI can call read-only tools; every mutating tool creates an `ai_action_proposals` row for human approval.
 - All domain queries are scoped to `household_id`; JWTs carry the household claim.
 
-See [PROGRESS.md](PROGRESS.md) for the phase-by-phase build log and
+See [CHANGELOG.md](CHANGELOG.md) for the release history,
+[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for the current build state, and
 [docs/01-PRODUCT-SPECIFICATION.md](docs/01-PRODUCT-SPECIFICATION.md) for the product contract.

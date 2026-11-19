@@ -29,4 +29,4 @@ Official Facebook/Meta API access, OCR/screenshot extraction, CSV/Excel import, 
 offline sync/change queue, live AI provider validation, production Postgres deployment.
 
 ## MVP acceptance scenarios
-See `docs/17-TESTING.md` for how scenarios A–H from the master prompt map to the implemented flows.
+See `docs/17-TESTING.md` for how scenarios A–H from the original brief map to the implemented flows.

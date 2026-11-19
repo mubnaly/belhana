@@ -11,9 +11,13 @@
 - `npm --prefix apps/web run build` → SvelteKit static SPA builds to `apps/web/build` cleanly.
 - `cargo check` in `apps/desktop/src-tauri` → Tauri 2 shell checks cleanly (icon.ico generated).
 - Android (Windows host, complete NDK 26.1.10909125 + JDK 17 + `aarch64-linux-android` Rust target):
-  `cd apps/desktop && npx tauri android build --apk --debug -t aarch64 --ci` → built
-  `gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk` (125.46 MB); Kotlin
-  deprecation/Java 8 source-target warnings only, no build errors. The APK was not launched on a device.
+  `cd apps/desktop && npx tauri android build --apk -t aarch64 --ci` (release) → built
+  `gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk` (5.57 MB, signed
+  with the local debug key; `apksigner verify` passes). The old debug build was 125.46 MB because
+  its `.so` was 118.55 MB; release `strip`/LTO/size opts made it 4.02 MB and Gradle minification made
+  the dex 1.41 MB. Kotlin deprecation/Java 8 source-target warnings only. The first release attempt
+  hit a Gradle daemon crash from low RAM; rerunning after the Rust link was cached succeeded. The APK
+  was not launched on a device.
 - On this Windows host always use `--offline` for Cargo: a plain `cargo check` tried to refresh the
   crates.io index and failed with `memory allocation of 760 bytes failed`.
 

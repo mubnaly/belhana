@@ -33,8 +33,13 @@
 ### Verified
 - `cargo check --workspace --offline` and `cargo test --workspace --offline` pass 38 tests;
   `npm --prefix apps/web run build` is clean.
-- `npx tauri android build --apk --debug -t aarch64 --ci` produced
-  `apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`.
+- `npx tauri android build --apk -t aarch64 --ci` (release) produced
+  `apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`
+  (5.57 MB, signed with the local debug key). The earlier debug build was 125.46 MB; the release Cargo
+  profile cut the `.so` from 118.55 MB to 4.02 MB and Gradle minification cut the dex from ~13 MB to
+  1.41 MB.
+- Removed stale leftovers: the original master prompt, the superseded `PROGRESS.md`, a one-off i18n
+  migration script, the downloaded NDK archive/temp DBs, and the old debug APK.
 - See `docs/17-TESTING.md` and `IMPLEMENTATION_STATUS.md` for the API/browser smoke results.
 
 ## 0.2.6 — 2026-11-19 (macros, diet & athlete guidance, theme in settings)

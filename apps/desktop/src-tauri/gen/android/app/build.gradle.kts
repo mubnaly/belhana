@@ -39,6 +39,13 @@ android {
             }
         }
         getByName("release") {
+            // This app talks to a local/LAN HTTP API (10.0.2.2:8080 on the
+            // emulator, a LAN address on a phone), so keep cleartext allowed
+            // in release too. The generated Tauri template sets this to false.
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+            // Locally installable release APK. Replace with a real upload/store
+            // signing config before distributing to other people.
+            signingConfig = signingConfigs.getByName("debug")
             optimization {
                enable = true
             }

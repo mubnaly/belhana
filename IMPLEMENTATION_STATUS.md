@@ -15,10 +15,10 @@ it deliberately does not claim unverified integrations.
 | `apps/api` | ✅ | 86 route declarations in 17 modules (incl. nutrition guide + athlete plan); startup migrate + seed; healthz |
 | `apps/web` | ✅ | 18 app screens (plus login/register), Arabic RTL/English, theme switch in Settings, light/dark sticky-note themes, monochrome SVG icons, static build clean (no a11y warnings) + browser E2E pass |
 | `apps/desktop` | 🟡 | Tauri 2 shell compiles (`cargo check`); WebView2 required to launch the Windows binary |
-| `apps/desktop` (Android) | ✅ | debug APK built for `aarch64` (125.46 MB); not launched on a device |
+| `apps/desktop` (Android) | ✅ | signed release APK built for `aarch64` (5.57 MB); not launched on a device |
 | `workers/maintenance_worker` | ✅ | `--once` sweep ran clean (stale prices, expiry reminders, pruning) |
 
-## MVP checklist (master prompt §25)
+## MVP checklist
 
 1. ✅ Register/login; access token + rotating refresh; same household from multiple devices via API.
 2. ✅ Household city/currency/size; members with preferences and exclusions.
@@ -62,7 +62,7 @@ it deliberately does not claim unverified integrations.
 28. ✅ Prices entered or edited in the app are `confirmed` (not clinical `verified`), remain editable,
     and keep `previous_amount_minor` plus review events; ambiguous import rows still need unit/date/
     product confirmation.
-29. ✅ Android Gradle project generated and debug APK built for `aarch64`; see the build note below.
+29. ✅ Android Gradle project generated and signed release APK built for `aarch64` (5.57 MB); see the build note below.
 
 ## Household preference, live servings, confirmed prices & Android (2026-11-19)
 
@@ -99,13 +99,19 @@ repository from this shell, so the verified `android-ndk-r26b-windows.zip` (SHA1
 exposed two real config issues, both fixed: `frontendDist` was `../web/build` (resolved to
 `apps/desktop/web/build`) and is now `../../web/build`; and the Tauri package was binary-only, so a
 `belhana_desktop_lib` cdylib/staticlib target with the `mobile_entry_point` was added in `src/lib.rs`.
-Final build command:
-`cd apps/desktop && npx tauri android build --apk --debug -t aarch64 --ci`.
-Result: ✅ APK at
-`apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`
-(125.46 MB). Android SDK build-tools 36 and platform 37.0 were installed by Gradle during the build;
-only build output is ignored by the generated Android `.gitignore`. The APK was not launched on a
-device.
+The first successful APK used `--debug` and was 125.46 MB: the unoptimised Rust `.so` alone was
+118.55 MB, and the generated Gradle debug flavor keeps debug symbols and skips dex minification.
+`[profile.release]` now applies `strip`, `lto`, `opt-level = "s"`, `codegen-units = 1` and
+`panic = "abort"`, taking the `.so` to 4.02 MB; Gradle's release minification took the dex from
+~13 MB to 1.41 MB. Final build command:
+`cd apps/desktop && npx tauri android build --apk -t aarch64 --ci` (release is the CLI default).
+Result: ✅ signed, installable APK at
+`apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`
+(5.57 MB, `apksigner verify` passes). The generated `build.gradle.kts` also had to keep
+`usesCleartextTraffic=true` in release (the app reaches a local/LAN HTTP API) and use the local debug
+signing key; a real keystore is required before distribution. Android SDK build-tools 36 and platform
+37.0 were installed by Gradle during the build; only build output is ignored by the generated Android
+`.gitignore`. The APK was not launched on a device.
 
 ## Macros, diet & athlete guidance, theme in Settings (2026-11-19)
 
@@ -272,6 +278,6 @@ cleanly. (At MVP delivery `cargo test --workspace` passed 20 tests; it now passe
 
 ## Decision / constraint notes
 
-- The master prompt's 19-crate layout was consolidated into 5 libraries + API + worker.
+- The original 19-crate layout was consolidated into 5 libraries + API + worker.
 - No Tailwind; CSS variables in `apps/web/src/app.css` instead.
 - All money values in JSON and DB are integer minor units (piasters). The UI divides by 100 only for display.

@@ -13,7 +13,7 @@ Tauri WebView (apps/desktop) ──HTTP──┘        │
 ```
 
 ## Crate consolidation
-The master prompt sketched ~19 crates. This implementation uses one crate per layer:
+The original product brief sketched ~19 crates. This implementation uses one crate per layer:
 `common` (money, units, Arabic text, errors), `db` (pool/migrations), `auth`, `core`
 (household/family/pricing/imports/recipes/inventory/planning/shopping/occasions/dashboard),
 `ai`, `api` (16 route modules), `maintenance_worker`. Feature boundaries remain explicit at module level.
