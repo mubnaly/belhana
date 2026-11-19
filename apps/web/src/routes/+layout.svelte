@@ -35,6 +35,7 @@
 	const nav = [
 		{ href: '/', icon: '🏠', key: 'home' },
 		{ href: '/plan', icon: '📅', key: 'plan' },
+		{ href: '/recipes', icon: '🍲', key: 'recipes' },
 		{ href: '/shopping', icon: '🛒', key: 'shopping' },
 		{ href: '/inventory', icon: '📦', key: 'inventory' },
 		{ href: '/more', icon: '⋯', key: 'more' }

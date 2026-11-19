@@ -1,6 +1,6 @@
 # Implementation status
 
-Last updated: 2026-11-18. This file reports the code that exists and the checks that were run;
+Last updated: 2026-11-19. This file reports the code that exists and the checks that were run;
 it deliberately does not claim unverified integrations.
 
 ## Build state
@@ -45,6 +45,35 @@ it deliberately does not claim unverified integrations.
 21. ✅ Fixed-spend shopping lines (e.g. 20 EGP of salt) that record expense but create no fake stock lot.
 22. ✅ Meal search across names, ingredients and tags, with web-search/add-it-yourself fallback for
     missing dishes, local star bookmarks plus a saved-only filter, and sub-kilogram weights shown in grams.
+23. ✅ Recipes reachable from the bottom navigation; the home page shows a structured daily table
+    (breakfast, morning snack, lunch, afternoon snack, dinner) with bread, side dishes, rice/salad and
+    snack components, plus quick homemade basics such as bread.
+
+## Daily table, recipes nav and quick basics (2026-11-19)
+
+`/api/dashboard` now returns `today_table`, ordered as breakfast → morning snack → lunch → afternoon snack
+→ dinner. A planned meal from today's plan becomes the main dish; otherwise a deterministic library
+suggestion is shown and flagged «مقترح». Each meal is completed with components: breakfast gets bread and
+at least two adamas, lunch gets rice (skipped when the main is already a rice dish) and a green salad,
+dinner gets bread and one adama, and fruit/vegetable snacks fill the gaps between meals. `quick_basics`
+surfaces easy homemade items (bread, white rice, green salad, an adama and the two snacks) on the home
+page.
+
+Recipes moved into the bottom navigation after Plan (six compact items). `/recipes?open=<id>` opens the
+detail modal directly, so every dish in the home table is one tap from its full recipe.
+
+Eight quick component recipes were added with empty `meal_types` so the planner never selects them as
+standalone meals: خبز بلدي سريع (one short 20–30 minute proof), أرز أبيض, سلطة خضراء, جبنة بيضاء بالزيت,
+بيض مسلوق, زبادي بالخيار, سناك فواكه and سناك خضار. The missing `خميرة` product was added to the catalog,
+bringing the shared library to 42 recipes. System recipe refresh now also updates `meal_types` and tags
+idempotently, so existing databases receive the new `bread`, `adama`, `salad`, `rice` and snack tags.
+
+Verified against the seeded API: dashboard courses arrive in the expected order with breakfast = planned
+dish + bread + two adamas and dinner = planned dish + bread + one adama; `خبز بلدي سريع` is searchable,
+has `meal_types = []`, tags `basic/bread/component/quick`, the yeast ingredient and five practical steps.
+`cargo test --workspace` passes 23 tests, `python scripts/smoke_guidance.py` passes 30/30, the Svelte
+build succeeds, and browser checks show the new table, quick-basics links, `?open=` modal and Arabic/
+English labels with no console errors.
 
 ## Meal search and local saving (2026-11-18)
 

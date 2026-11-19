@@ -163,12 +163,13 @@ async fn refresh_recipe_instructions(
     r: &seed_data::SeedRecipeDef,
 ) -> Result<(), belhana_common::CommonError> {
     sqlx::query(
-        "UPDATE recipes SET name_en = ?, description = ?, prep_minutes = ?, cook_minutes = ?,
+        "UPDATE recipes SET name_en = ?, description = ?, meal_types = ?, prep_minutes = ?, cook_minutes = ?,
             default_servings = ?, cooking_method = ?, updated_at = datetime('now')
          WHERE id = ? AND household_id IS NULL",
     )
     .bind(r.name_en)
     .bind(r.description)
+    .bind(serde_json::to_string(r.meal_types).unwrap())
     .bind(r.prep)
     .bind(r.cook)
     .bind(r.servings)
@@ -196,6 +197,22 @@ async fn refresh_recipe_instructions(
         .execute(pool)
         .await
         .map_err(belhana_core::map_db)?;
+    }
+
+    // Tags drive home-table suggestions and search. Refresh them for system
+    // recipes as well, so improved/new tags reach existing installations.
+    sqlx::query("DELETE FROM recipe_tags WHERE recipe_id = ?")
+        .bind(recipe_id)
+        .execute(pool)
+        .await
+        .map_err(belhana_core::map_db)?;
+    for tag in r.tags {
+        let _ = sqlx::query("INSERT OR IGNORE INTO recipe_tags (id, recipe_id, tag) VALUES (?, ?, ?)")
+            .bind(belhana_core::new_id())
+            .bind(recipe_id)
+            .bind(*tag)
+            .execute(pool)
+            .await;
     }
     Ok(())
 }

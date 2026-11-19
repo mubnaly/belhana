@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { api, money, formatQty } from '$lib/api.js';
 	import { t, toggleLang, getLang, langStore } from '$lib/i18n.js';
 
@@ -128,7 +129,11 @@
 
 	onMount(() => {
 		loadSaved();
-		load();
+		const openId = page.url.searchParams.get('open');
+		(async () => {
+			await load();
+			if (openId) await open({ id: openId });
+		})();
 		return () => clearTimeout(searchTimer);
 	});
 

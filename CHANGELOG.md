@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.3 — 2026-11-19 (daily table, recipes nav & quick homemade basics)
+
+### Added
+- A dedicated Recipes slot in the bottom navigation (`/recipes`) after Plan, with compact sizing so
+  six items still fit on a phone.
+- Structured dashboard `today_table`, ordered breakfast → morning snack → lunch → afternoon snack →
+  dinner. Today's planned dishes become the mains; each meal is completed with bread, at least two
+  adamas at breakfast, rice when lunch is not already a rice dish, a green salad at lunch, bread plus
+  one adama at dinner, and fruit/vegetable snacks between meals. When no planned main exists, a
+  deterministic library suggestion is shown and marked «مقترح».
+- `quick_basics` on the home page surfaces easy homemade bread, white rice, green salad, a side dish
+  and the two snacks, each opening its recipe directly.
+- `/recipes?open=<recipeId>` opens the recipe detail modal on load, so home-table dish links work in
+  one tap.
+- Eight quick component recipes with empty `meal_types` (so the planner never treats them as full
+  meals): خبز بلدي سريع بمرة تخمير قصيرة, أرز أبيض, سلطة خضراء, جبنة بيضاء بالزيت, بيض مسلوق,
+  زبادي بالخيار, سناك فواكه and سناك خضار. Added the missing `خميرة` catalog product.
+- System recipe refresh now also updates `meal_types` and tags (delete-and-reinsert), idempotently, so
+  existing databases receive the new `bread`, `adama`, `salad`, `rice` and snack tags.
+
+### Verified
+- Dashboard courses arrive in the order above; today's breakfast shows the planned dish plus bread and
+  two adamas, and dinner shows bread plus one adama.
+- `خبز بلدي سريع` is searchable, has `meal_types = []`, tags `basic/bread/component/quick`, the yeast
+  ingredient and five practical steps.
+- `cargo test --workspace` passes 23 tests; `python scripts/smoke_guidance.py` passes 30/30; the Svelte
+  production build succeeds; browser checks show the new table, quick-basics links, `?open=` modal and
+  Arabic/English labels with no console errors.
+
 ## 0.2.2 — 2026-11-18 (meal search, local saving & gram display)
 
 ### Added

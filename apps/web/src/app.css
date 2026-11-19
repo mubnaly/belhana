@@ -257,9 +257,11 @@ label {
 
 .bottomnav a {
 	flex: 1;
+	min-width: 0;
 	text-align: center;
-	padding: 0.45rem 0 0.55rem;
-	font-size: 0.72rem;
+	padding: 0.4rem 0 0.5rem;
+	font-size: 0.64rem;
+	line-height: 1.15;
 	color: var(--muted);
 }
 
@@ -270,7 +272,7 @@ label {
 
 .bottomnav .icon {
 	display: block;
-	font-size: 1.25rem;
+	font-size: 1.1rem;
 	line-height: 1.2;
 }
 
