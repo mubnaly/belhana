@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.4 — 2026-11-19 (dark wall theme & cleaner recent prices)
+
+### Added
+- A dark, cartoon “notes on the wall” theme in `apps/web/src/app.css`: deep dotted wall background,
+  slightly tilted sticky-note cards with paper tape and ruled lines, chunky outlined buttons with hard
+  offset shadows, highlighter strokes under section titles, sticker chips, dark inputs, and a dark
+  bottom navigation with an active-note highlight. The theme is global, so every screen inherits it.
+- Native controls follow the dark scheme (`color-scheme: dark`), including scrollbars, selects and date
+  pickers. Layouts straighten and transitions stop when the user prefers reduced motion.
+
+### Fixed
+- The dashboard “recent prices” list now shows one row per product (its latest observation) instead of
+  letting repeated egg observations fill the whole list. Unit and review status are shown in Arabic
+  (`قطعة`, `مؤكد`, …) while English keeps the raw labels.
+- The assistant error bubble uses the dark theme instead of a light pink background.
+
+### Verified
+- Dashboard returns five distinct products with Arabic units/status; `cargo test --workspace` passes 23
+  tests; the Svelte production build succeeds; browser checks of `/`, `/more` and the recipe modal show
+  the dark wall, taped cards, sticker tiles and no console errors.
+
 ## 0.2.3 — 2026-11-19 (daily table, recipes nav & quick homemade basics)
 
 ### Added

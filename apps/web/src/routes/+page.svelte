@@ -37,6 +37,23 @@
 
 	const periodNames = { breakfast: 'breakfast', lunch: 'lunch', dinner: 'dinner', snack: 'snack', dessert: 'dessert', juice: 'juice' };
 
+	const unitNames = {
+		kg: 'كجم',
+		g: 'جم',
+		l: 'لتر',
+		ml: 'مل',
+		piece: 'قطعة',
+		dozen: 'دستة',
+		bundle: 'حزمة',
+		pack: 'عبوة',
+		carton: 'كرتونة'
+	};
+
+	function unitLabel(unit) {
+		if (!unit) return '';
+		return lang === 'ar' ? unitNames[unit] ?? unit : unit;
+	}
+
 	function roleIcon(role, name = '') {
 		if (role === 'bread') return '🥖';
 		if (role === 'salad') return '🥗';
@@ -182,8 +199,8 @@
 						{#each data.recent_prices as p}
 							<tr>
 								<td>{p.product_name_ar}</td>
-								<td>{p.amount_minor != null ? money(p.amount_minor) : '—'} {p.unit ?? ''}</td>
-								<td><span class="chip {p.review_status === 'verified' ? 'ok' : 'warn'}">{p.review_status}</span> {p.observation_date ?? ''}</td>
+								<td>{p.amount_minor != null ? money(p.amount_minor) : '—'} {unitLabel(p.unit)}</td>
+								<td><span class="chip {p.review_status === 'verified' ? 'ok' : 'warn'}">{t(p.review_status)}</span> {p.observation_date ?? ''}</td>
 							</tr>
 						{/each}
 					</tbody>

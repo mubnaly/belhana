@@ -49,6 +49,22 @@ it deliberately does not claim unverified integrations.
     (breakfast, morning snack, lunch, afternoon snack, dinner) with bread, side dishes, rice/salad and
     snack components, plus quick homemade basics such as bread.
 
+## Dark wall theme and recent-price cleanup (2026-11-19)
+
+The web UI now uses a single dark cartoon theme: a deep dotted "wall" background, sticky-note cards
+taped at the top with a small tilt, ruled paper lines, hard offset shadows, outlined sticker buttons,
+marker strokes under section titles, dark inputs and a dark bottom navigation. Cards straighten and
+transitions stop under `prefers-reduced-motion`. All screens share the global `app.css`, so no page
+markup changed for the theme.
+
+The dashboard's recent-prices block now keeps only the latest observation per product, so repeated
+entries for the same item no longer fill the list. Units and review status are localized in Arabic
+(`قطعة`، `كجم`، `مؤكد`)، while English keeps the raw labels.
+
+Verified with browser style checks on `/`, `/more` and the recipe modal (wall background `#171320`,
+note cards `#2c2536`, taped top-level cards, dark modal and overlay, no console errors). `cargo test
+--workspace` passes 23 tests and the Svelte production build succeeds.
+
 ## Daily table, recipes nav and quick basics (2026-11-19)
 
 `/api/dashboard` now returns `today_table`, ordered as breakfast → morning snack → lunch → afternoon snack

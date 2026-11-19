@@ -234,12 +234,20 @@ pub async fn load_dashboard(pool: &SqlitePool, hid: &str) -> Result<Dashboard, C
         .fetch_one(pool)
         .await
         .map_err(map_db)?;
+    // One row per product: the most recent observation. Without this, repeated
+    // observations for the same item (e.g. eggs) filled the whole list.
     let rows = sqlx::query(
         "SELECT o.amount_minor, o.unit, o.observation_date, o.review_status, p.name_ar AS product, m.name AS merchant
          FROM price_observations o
          LEFT JOIN products p ON p.id = o.product_id
          LEFT JOIN merchants m ON m.id = o.merchant_id
          WHERE o.amount_minor IS NOT NULL
+           AND o.id = (
+               SELECT o2.id FROM price_observations o2
+               WHERE o2.amount_minor IS NOT NULL AND o2.product_id IS o.product_id
+               ORDER BY o2.submitted_at DESC, o2.id DESC
+               LIMIT 1
+           )
          ORDER BY o.submitted_at DESC LIMIT 5",
     )
     .fetch_all(pool)

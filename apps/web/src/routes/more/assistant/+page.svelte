@@ -78,7 +78,7 @@
 		{/if}
 		{#each messages as m}
 			<div style="margin:.5rem 0; display:flex; flex-direction:column; align-items:{m.role === 'user' ? 'flex-end' : 'flex-start'}">
-				<div style="background:{m.role === 'user' ? 'var(--primary-soft)' : m.role === 'error' ? '#fdecea' : 'var(--surface)'}; border:1px solid var(--border); border-radius:12px; padding:.55rem .8rem; max-width:90%; white-space:pre-wrap">
+				<div style="background:{m.role === 'user' ? 'var(--primary-soft)' : m.role === 'error' ? 'rgba(255,127,127,.14)' : 'var(--surface)'}; border:1px solid var(--border); border-radius:12px; padding:.55rem .8rem; max-width:90%; white-space:pre-wrap">
 					{m.content}
 				</div>
 			</div>
