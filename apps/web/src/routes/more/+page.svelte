@@ -1,4 +1,5 @@
 <script>
+	import { base } from '$app/paths';
 	import { toggleLang, getLang, t, langStore } from '$lib/i18n.js';
 	import Icon from '$lib/Icon.svelte';
 
@@ -29,7 +30,7 @@
 
 	<div class="grid2">
 		{#each items as item}
-			<a class="stat" href={item.href} style="text-align:center">
+			<a class="stat" href={base + item.href} style="text-align:center">
 				<div style="display:inline-flex; color:var(--primary-dark)"><Icon name={item.icon} size={26} /></div>
 				<div class="k" style="font-size:.85rem">{t(item.key)}</div>
 			</a>

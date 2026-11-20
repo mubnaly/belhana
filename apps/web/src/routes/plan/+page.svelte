@@ -221,7 +221,7 @@
 								{#if slot.prepared}<span class="chip ok"><Icon name="check" size={13} /> {t('cooked')}</span>{/if}
 							</div>
 
-							<a class="meal-name" href={`/recipes?open=${slot.recipe_id}&servings=${slot.servings}`}>
+							<a class="meal-name" href={`${base}/recipes?open=${slot.recipe_id}&servings=${slot.servings}`}>
 								{slot.recipe_name_ar}
 							</a>
 
@@ -237,7 +237,7 @@
 							{/if}
 
 							<div class="meal-actions">
-								<a class="btn secondary small" href={`/recipes?open=${slot.recipe_id}&servings=${slot.servings}`}>
+								<a class="btn secondary small" href={`${base}/recipes?open=${slot.recipe_id}&servings=${slot.servings}`}>
 									<Icon name="plate" size={14} /> {t('details')}
 								</a>
 								{#if !slot.prepared}

@@ -121,7 +121,7 @@
 							<div class="course-line">
 								<span class="course-role"><Icon name={roleIcon(course.main.role, course.main.name_ar)} size={18} /></span>
 								{#if course.main.recipe_id}
-									<a class="dish-name" href={`/recipes?open=${course.main.recipe_id}`}>{course.main.name_ar}</a>
+									<a class="dish-name" href={`${base}/recipes?open=${course.main.recipe_id}`}>{course.main.name_ar}</a>
 								{:else}
 									<span class="dish-name">{course.main.name_ar}</span>
 								{/if}
@@ -133,7 +133,7 @@
 							<div class="course-line side">
 								<span class="course-role"><Icon name={roleIcon(side.role, side.name_ar)} size={18} /></span>
 								{#if side.recipe_id}
-									<a class="dish-name" href={`/recipes?open=${side.recipe_id}`}>{side.name_ar}</a>
+									<a class="dish-name" href={`${base}/recipes?open=${side.recipe_id}`}>{side.name_ar}</a>
 								{:else}
 									<span class="dish-name">{side.name_ar}</span>
 								{/if}
@@ -157,7 +157,7 @@
 			<div class="card">
 				<div class="basics-grid">
 					{#each data.quick_basics as b}
-						<a class="basic-item" href={`/recipes?open=${b.recipe_id}`}>
+						<a class="basic-item" href={`${base}/recipes?open=${b.recipe_id}`}>
 							<span class="basic-icon"><Icon name={roleIcon(b.role, b.name_ar)} size={22} /></span>
 							<span class="basic-name">{b.name_ar}</span>
 							<span class="kcal estimate">{kcalText(b.kcal_per_serving, lang)}</span>
